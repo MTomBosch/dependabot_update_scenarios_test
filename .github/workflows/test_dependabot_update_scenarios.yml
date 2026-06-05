@@ -64,23 +64,38 @@ jobs:
         # Expected commit sha is 34e114876b0b11c390a56381ad16ebd13914f8d5 which is version v4.3.1
         # Commit that belongs to version 4.1.0
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+      - name: Action reference via commit without version comment and without any tags in the repo
+        if: ${{ false }}
+        # expected_behavior: Replace current commit by latest commit on default branch
+        uses: mtombosch/cicd-actions/inter-repo-access@51883d9cd772bee5b7d139a2e6ffd8aeabca4224
 
   workflow-reference-via-branch-fixture:
     if: ${{ false }}
+    # Repo has no tags at all
     # expected_behavior: latest_commit_on_branch
     uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@main
-
-  workflow-reference-via-tag-fixture:
+  workflow-reference-via-commit-fixture:
     if: ${{ false }}
-    # expected_behavior: newest_semver_compatible_tag_commit
+    # expected_behavior: latest_commit_on_branch
+    # Repo has no tags at all
+    # Commit is from May 12 2026
+    uses: mtombosch/cicd-workflows/.github/workflows/copyright.yml@a2885534f75cf360ecb1b3c589778846bcd4e170
+
+
+  workflow-reference-via-not-existing-tag-fixture:
+    if: ${{ false }}
+    # expected_behavior: no update at all
+    # Repo actions/reusable-workflows has no tags at all
     uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@v1
 
   workflow-reference-via-commit-with-version-comment-fixture:
     if: ${{ false }}
     # expected_behavior: newest_semver_compatible_tag_commit
+    # Repo has no tags so version comment is invalid, but commit exists (commit date Jan 21, 2025)
     uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@95d9656793415e47f574f7967f3850ea3bf5a7ed # v1.0.0
 
   workflow-reference-via-commit-without-version-comment-fixture:
     if: ${{ false }}
     # expected_behavior: inferred_tag_then_newest_semver_compatible_tag_commit
-    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@2826fb8353263a138210fc017301ce5767a9c0d4
+    # Repo has no tags at all
+    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@95d9656793415e47f574f7967f3850ea3bf5a7ed
