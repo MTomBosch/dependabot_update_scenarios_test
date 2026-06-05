@@ -27,7 +27,7 @@ permissions:
 # This even lead to the fact that a checkout call with v6.0.0 was downgraded to version 4.3.1
 #
 # When a repo has no tags at all and the ref is a commit sha, then dependabot should update to the latest commit on the default branch.
-# To make it work simply create on any commit a tag v.0.0.0 and then dependabot will update to the latest commit on the default branch
+# To make it work simply create on any commit on the main branch a tag v.0.0.0 or maybe also v0.0.1 and then dependabot will update to the latest commit on the main branch
 #
 # When a ref is done via a branch (e.g. actions/checkout@main), then dependabot should update to the latest commit on that branch, but it does not do anything
 #
@@ -113,9 +113,14 @@ jobs:
   workflow-reference-via-commit-fixture:
     if: ${{ false }}
     # expected_behavior: latest_commit_on_branch
-    # Repo has no tags at all
+    # Repo has some tags v0.0.0 and v0.0.1 on non-latest commits, but commit reference is on main branch and is newer than the tags
     # Commit is from May 12 2026
     uses: mtombosch/cicd-workflows/.github/workflows/copyright.yml@a2885534f75cf360ecb1b3c589778846bcd4e170
+  workflow-reference-via-banch-fixture:
+    if: ${{ false }}
+    # expected_behavior: latest_commit_on_branch
+    # Repo has some tags v0.0.0 and v0.0.1
+    uses: mtombosch/cicd-workflows/.github/workflows/bzlmod-lock-check.yml@main
 
   workflow-reference-via-commit-with-version-comment-fixture:
     if: ${{ false }}
