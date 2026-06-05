@@ -1,0 +1,9 @@
+name: Dummy Composite Action
+description: A dummy composite action that prints hello world.
+
+runs:
+  using: composite
+  steps:
+    - name: Print hello from composite action
+      shell: bash
+      run: echo "hello world from action"

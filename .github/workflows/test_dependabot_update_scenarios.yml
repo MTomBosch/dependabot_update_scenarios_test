@@ -8,66 +8,79 @@ on:
 permissions:
   contents: read
 
+
+
+#
+# MISSING TEST SCENARIOS: referenced actions or workflows where the tag is not just the version but has a
+#                         prefix with the name of the action or workflow
+#
+
+
 jobs:
   dependabot-update-scenario-tests:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - scenario: action_branch
-            expected_behavior: latest_commit_on_branch
-          - scenario: action_tag
-            expected_behavior: newest_semver_compatible_tag_commit
-          - scenario: action_commit_with_version_comment
-            expected_behavior: newest_semver_compatible_tag_commit
-          - scenario: action_commit_without_version_comment
-            expected_behavior: inferred_tag_then_newest_semver_compatible_tag_commit
-          - scenario: workflow_branch
-            expected_behavior: latest_commit_on_branch
-          - scenario: workflow_tag
-            expected_behavior: newest_semver_compatible_tag_commit
-          - scenario: workflow_commit_with_version_comment
-            expected_behavior: newest_semver_compatible_tag_commit
-          - scenario: workflow_commit_without_version_comment
-            expected_behavior: inferred_tag_then_newest_semver_compatible_tag_commit
-
     steps:
-      - name: Log scenario under test
-        run: |
-          echo "Scenario: ${{ matrix.scenario }}"
-          echo "Expected behavior: ${{ matrix.expected_behavior }}"
-          echo "This workflow is a dependabot reference fixture; scenario refs are intentionally non-executing."
+      - name: Log fixture purpose
+        run: echo "This workflow is a dependabot reference fixture; scenario refs are intentionally non-executing."
 
       - name: Action reference via branch (intentionally old style for dependabot updates)
         # Intentionally disabled: this workflow is a static dependency fixture for dependabot updates.
-        if: ${{ matrix.scenario == 'action_branch' && false }}
+        if: ${{ false }}
+        # expected_behavior: latest_commit_on_branch
         uses: actions/checkout@main
 
       - name: Action reference via semver tag (intentionally old for dependabot updates)
-        if: ${{ matrix.scenario == 'action_tag' && false }}
+        if: ${{ false }}
+        # expected_behavior: newest_semver_compatible_tag_commit
         uses: actions/setup-node@v3
 
       - name: Action reference via commit with version comment
-        if: ${{ matrix.scenario == 'action_commit_with_version_comment' && false }}
+        if: ${{ false }}
+        # expected_behavior: newest_semver_compatible_tag_commit
         uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+      - name: Action reference via commit with major version comment
+        if: ${{ false }}
+        # expected_behavior: newest_semver_compatible_tag_commit
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3
+      - name: Action reference via commit with wrong version comment
+        if: ${{ false }}
+        # v3.7.9 does not exist at all
+        # expected_behavior: newest_semver_compatible_tag_commit
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.7.9
+      - name: Action reference via commit with wrong major version comment
+        if: ${{ false }}
+        # v4 exists but points to a different commit
+        # expected_behavior: newest_semver_compatible_tag_commit
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v4
+      - name: Action reference via commit with version comment that has no related tag
+        if: ${{ false }}
+        # v3.3.2 exists as tag but not 3.3.2
+        # expected_behavior: newest_semver_compatible_tag_commit
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # 3.3.2
 
       - name: Action reference via commit without version comment
-        if: ${{ matrix.scenario == 'action_commit_without_version_comment' && false }}
+        if: ${{ false }}
+        # expected_behavior: Resolve commit to semver tag and then update to newest semver compatible tag
+        # Expected commit sha is 34e114876b0b11c390a56381ad16ebd13914f8d5 which is version v4.3.1
+        # Commit that belongs to version 4.1.0
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
 
   workflow-reference-via-branch-fixture:
     if: ${{ false }}
+    # expected_behavior: latest_commit_on_branch
     uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@main
 
   workflow-reference-via-tag-fixture:
     if: ${{ false }}
+    # expected_behavior: newest_semver_compatible_tag_commit
     uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@v1
 
   workflow-reference-via-commit-with-version-comment-fixture:
     if: ${{ false }}
+    # expected_behavior: newest_semver_compatible_tag_commit
     uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@95d9656793415e47f574f7967f3850ea3bf5a7ed # v1.0.0
 
   workflow-reference-via-commit-without-version-comment-fixture:
     if: ${{ false }}
+    # expected_behavior: inferred_tag_then_newest_semver_compatible_tag_commit
     uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@2826fb8353263a138210fc017301ce5767a9c0d4

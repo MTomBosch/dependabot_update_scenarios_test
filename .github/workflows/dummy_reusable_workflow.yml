@@ -1,0 +1,11 @@
+name: Dummy Reusable Workflow
+
+on:
+  workflow_call:
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print hello from reusable workflow
+        run: echo "hello world from workflow"
