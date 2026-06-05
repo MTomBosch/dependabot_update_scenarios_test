@@ -4,6 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    # Required so that in case a ref is on verion 2.3 but the latest major is > 2, e.g. 4 dependabot
+    # is proposing the latest 2.x version instead of the latest major, e.g. 4.x.
+    # See https://stackoverflow.com/questions/60649404/how-can-i-change-my-dependabot-config-to-exclude-major-versions
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       my-group:
         patterns:
