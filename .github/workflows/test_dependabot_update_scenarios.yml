@@ -108,13 +108,6 @@ jobs:
     # Commit is from May 12 2026
     uses: mtombosch/cicd-workflows/.github/workflows/copyright.yml@a2885534f75cf360ecb1b3c589778846bcd4e170
 
-
-  workflow-reference-via-not-existing-tag-fixture:
-    if: ${{ false }}
-    # expected_behavior: no update at all
-    # Repo actions/reusable-workflows has no tags at all
-    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@v1
-
   workflow-reference-via-commit-with-version-comment-fixture:
     if: ${{ false }}
     # expected_behavior: newest_semver_compatible_tag_commit
