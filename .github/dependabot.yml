@@ -4,3 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    groups:
+      my-group:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
