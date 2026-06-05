@@ -50,11 +50,11 @@ jobs:
 
       - name: Action reference via commit with version comment
         if: ${{ matrix.scenario == 'action_commit_with_version_comment' && false }}
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
 
       - name: Action reference via commit without version comment
         if: ${{ matrix.scenario == 'action_commit_without_version_comment' && false }}
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
   workflow-reference-via-branch-fixture:
     if: ${{ false }}
