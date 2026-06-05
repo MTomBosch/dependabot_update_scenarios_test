@@ -1,0 +1,33 @@
+name: Documentation
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize] # Allows forks to trigger the docs build
+  push:
+    branches:
+      - main
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    uses: eclipse-score/cicd-workflows/.github/workflows/docs.yml@f4c434fa877c0f1ee98425fc3d3ccb0b24e5c77f # main as of 2026-04-24
+    with:
+      # For accessing dependencies in private repositories (via bazel_dep)
+      gh_app_client_id: ${{ vars.ETAS_ENG_SCORE_BOT_APP_ID }}
+      # the bazel-target depends on your repo specific docs_targets configuration (e.g. "suffix")
+      bazel-target: "--lockfile_mode=error //:docs -- --github_user=${{ github.repository_owner }} --github_repo=${{ github.event.repository.name }}"
+      retention-days: 3
+    secrets:
+      # For accessing dependencies in private repositories (via bazel_dep)
+      gh_app_private_key: ${{ secrets.ETAS_ENG_SCORE_BOT_PRIVATE_KEY }}
+    permissions:
+      contents: write
+      pages: write
+      pull-requests: write
+      id-token: write
