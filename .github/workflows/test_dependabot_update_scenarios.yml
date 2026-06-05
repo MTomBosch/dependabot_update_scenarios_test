@@ -26,6 +26,19 @@ permissions:
 # then dependabot should update every ref according to the config. But dependabot computes one new version and then sets it everywhere
 # This even lead to the fact that a checkout call with v6.0.0 was downgraded to version 4.3.1
 #
+# When a repo has no tags at all and the ref is a commit sha, then dependabot should update to the latest commit on the default branch.
+# To make it work simply create on any commit a tag v.0.0.0 and then dependabot will update to the latest commit on the default branch
+#
+# When a ref is done via a branch (e.g. actions/checkout@main), then dependabot should update to the latest commit on that branch, but it does not do anything
+#
+#
+#  Overall it can be said that dependabot does the following:
+# 1) If ref is a semver tag, then update to the latest semver compatible tag
+# 2) If ref is a commit sha with version comment, then update to the commit that the newest semver compatible tag points to
+#
+# Dependabot does NOT support the following:
+# - Replace any non commit sha ref (e.g. branch or tag) by a commit sha and then apply update rules
+#
 
 jobs:
   dependabot-update-scenario-tests-steps-fixture-3:
