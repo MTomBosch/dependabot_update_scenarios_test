@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "17 3 * * 1"
 
+permissions:
+  contents: read
+
 jobs:
   dependabot-update-scenario-tests:
     runs-on: ubuntu-latest
@@ -34,8 +37,10 @@ jobs:
         run: |
           echo "Scenario: ${{ matrix.scenario }}"
           echo "Expected behavior: ${{ matrix.expected_behavior }}"
+          echo "This workflow is a dependabot reference fixture; scenario refs are intentionally non-executing."
 
       - name: Action reference via branch (intentionally old style for dependabot updates)
+        # Intentionally disabled: this workflow is a static dependency fixture for dependabot updates.
         if: ${{ matrix.scenario == 'action_branch' && false }}
         uses: actions/checkout@main
 
@@ -45,24 +50,24 @@ jobs:
 
       - name: Action reference via commit with version comment
         if: ${{ matrix.scenario == 'action_commit_with_version_comment' && false }}
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.1
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
 
       - name: Action reference via commit without version comment
         if: ${{ matrix.scenario == 'action_commit_without_version_comment' && false }}
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
 
-      - name: Workflow reference via branch (intentionally old style for dependabot updates)
-        if: ${{ matrix.scenario == 'workflow_branch' && false }}
-        uses: actions/starter-workflows/.github/workflows/ci.yml@main
+  workflow-reference-via-branch-fixture:
+    if: ${{ false }}
+    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@main
 
-      - name: Workflow reference via semver tag (intentionally old for dependabot updates)
-        if: ${{ matrix.scenario == 'workflow_tag' && false }}
-        uses: actions/starter-workflows/.github/workflows/ci.yml@v1.0.0
+  workflow-reference-via-tag-fixture:
+    if: ${{ false }}
+    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@v1
 
-      - name: Workflow reference via commit with version comment
-        if: ${{ matrix.scenario == 'workflow_commit_with_version_comment' && false }}
-        uses: actions/starter-workflows/.github/workflows/ci.yml@1111111111111111111111111111111111111111 # v1.0.0
+  workflow-reference-via-commit-with-version-comment-fixture:
+    if: ${{ false }}
+    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@95d9656793415e47f574f7967f3850ea3bf5a7ed # v1.0.0
 
-      - name: Workflow reference via commit without version comment
-        if: ${{ matrix.scenario == 'workflow_commit_without_version_comment' && false }}
-        uses: actions/starter-workflows/.github/workflows/ci.yml@2222222222222222222222222222222222222222
+  workflow-reference-via-commit-without-version-comment-fixture:
+    if: ${{ false }}
+    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@2826fb8353263a138210fc017301ce5767a9c0d4
