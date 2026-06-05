@@ -48,7 +48,7 @@ jobs:
         if: ${{ false }}
         # expected_behavior: latest_commit for 6.x version
         # v6.0.0 tag points to commit 1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v4.3.1
 
   dependabot-update-scenario-tests-steps-fixture:
     runs-on: ubuntu-latest
@@ -66,27 +66,27 @@ jobs:
         # expected_behavior: newest_semver_compatible_tag_commit
         # 0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0 & v3
         # 1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       - name: Action reference via commit with version comment
         if: ${{ false }}
         # expected_behavior: newest_semver_compatible_tag_commit
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # 4.2.0
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # 4.3.0
       - name: Action reference via commit with major version comment
         if: ${{ false }}
         # expected_behavior: newest_semver_compatible_tag_commit
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       - name: Action reference via commit with wrong version comment
         if: ${{ false }}
         # v4.7.12 does not exist at all
         # expected_behavior: newest_semver_compatible_tag_commit for 4.x
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.7.12
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.7.12
 
       - name: Action reference via commit without version comment
         if: ${{ false }}
         # expected_behavior: Resolve commit to semver tag and then update to newest semver compatible tag
         # Expected commit sha is 34e114876b0b11c390a56381ad16ebd13914f8d5 which is version v4.3.1
         # Commit that belongs to version 4.1.0
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Action reference via commit without version comment and without any tags in the repo
         if: ${{ false }}
         # expected_behavior: Replace current commit by latest commit on default branch
