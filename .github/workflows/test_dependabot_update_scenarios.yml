@@ -1,0 +1,68 @@
+name: test_dependabot_update_scenarios
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+jobs:
+  dependabot-update-scenario-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scenario: action_branch
+            expected_behavior: latest_commit_on_branch
+          - scenario: action_tag
+            expected_behavior: newest_semver_compatible_tag_commit
+          - scenario: action_commit_with_version_comment
+            expected_behavior: newest_semver_compatible_tag_commit
+          - scenario: action_commit_without_version_comment
+            expected_behavior: inferred_tag_then_newest_semver_compatible_tag_commit
+          - scenario: workflow_branch
+            expected_behavior: latest_commit_on_branch
+          - scenario: workflow_tag
+            expected_behavior: newest_semver_compatible_tag_commit
+          - scenario: workflow_commit_with_version_comment
+            expected_behavior: newest_semver_compatible_tag_commit
+          - scenario: workflow_commit_without_version_comment
+            expected_behavior: inferred_tag_then_newest_semver_compatible_tag_commit
+
+    steps:
+      - name: Log scenario under test
+        run: |
+          echo "Scenario: ${{ matrix.scenario }}"
+          echo "Expected behavior: ${{ matrix.expected_behavior }}"
+
+      - name: Action reference via branch (intentionally old style for dependabot updates)
+        if: ${{ matrix.scenario == 'action_branch' && false }}
+        uses: actions/checkout@main
+
+      - name: Action reference via semver tag (intentionally old for dependabot updates)
+        if: ${{ matrix.scenario == 'action_tag' && false }}
+        uses: actions/setup-node@v3
+
+      - name: Action reference via commit with version comment
+        if: ${{ matrix.scenario == 'action_commit_with_version_comment' && false }}
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.1
+
+      - name: Action reference via commit without version comment
+        if: ${{ matrix.scenario == 'action_commit_without_version_comment' && false }}
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+
+      - name: Workflow reference via branch (intentionally old style for dependabot updates)
+        if: ${{ matrix.scenario == 'workflow_branch' && false }}
+        uses: actions/starter-workflows/.github/workflows/ci.yml@main
+
+      - name: Workflow reference via semver tag (intentionally old for dependabot updates)
+        if: ${{ matrix.scenario == 'workflow_tag' && false }}
+        uses: actions/starter-workflows/.github/workflows/ci.yml@v1.0.0
+
+      - name: Workflow reference via commit with version comment
+        if: ${{ matrix.scenario == 'workflow_commit_with_version_comment' && false }}
+        uses: actions/starter-workflows/.github/workflows/ci.yml@1111111111111111111111111111111111111111 # v1.0.0
+
+      - name: Workflow reference via commit without version comment
+        if: ${{ matrix.scenario == 'workflow_commit_without_version_comment' && false }}
+        uses: actions/starter-workflows/.github/workflows/ci.yml@2222222222222222222222222222222222222222
