@@ -11,11 +11,15 @@ updates:
     #   - dependency-name: "*"
     #     update-types: ["version-update:semver-major"]
     groups:
-      # # In case there are repos known where there are no (semver) tags available I just want to use the latest commit on the default branch
-      # my-non-semver-group:
-      #   patterns:
-      #     - "actions/reusable-workflows/*"
-      #     - "mtombosch/cicd*"
+      # In case there are repos known where there are no (semver) tags available I just want to use the latest commit on the default branch
+      my-non-semver-group:
+        patterns:
+          - "actions/reusable-workflows/*"
+          - "mtombosch/cicd*"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
       my-semver-group:
         patterns:
           - "*"
