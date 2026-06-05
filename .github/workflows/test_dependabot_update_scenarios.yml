@@ -46,7 +46,7 @@ jobs:
 
       - name: Action reference via semver tag (intentionally old for dependabot updates)
         if: ${{ matrix.scenario == 'action_tag' && false }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
 
       - name: Action reference via commit with version comment
         if: ${{ matrix.scenario == 'action_commit_with_version_comment' && false }}
