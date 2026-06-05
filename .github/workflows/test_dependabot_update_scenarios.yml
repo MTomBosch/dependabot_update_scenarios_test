@@ -16,8 +16,16 @@ permissions:
 #
 
 
+#
+# ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+# Interesting: If same action is called within job (or even whole workflow) multiple times with different refs,
+# then dependabot should update every ref according to the config. But dependabot computes one new version and then sets it everywhere
+# This even lead to the fact that a checkout call with v6.0.0 was downgraded to version 4.3.1
+#
+
 jobs:
-  dependabot-update-scenario-tests:
+  dependabot-update-scenario-tests-steps-fixture-3:
     runs-on: ubuntu-latest
     steps:
       - name: Log fixture purpose
@@ -27,12 +35,23 @@ jobs:
         if: ${{ false }}
         # expected_behavior: latest_commit_on_branch
         uses: actions/checkout@main
-      - name: Action reference via branch (intentionally old style for dependabot updates)
+  dependabot-update-scenario-tests-steps-fixture-2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log fixture purpose
+        run: echo "This workflow is a dependabot reference fixture; scenario refs are intentionally non-executing."
+      - name: Action reference via tag
         # Intentionally disabled: this workflow is a static dependency fixture for dependabot updates.
         if: ${{ false }}
         # expected_behavior: latest_commit for 6.x version
         # v6.0.0 tag points to commit 1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
         uses: actions/checkout@v6.0.0
+
+  dependabot-update-scenario-tests-steps-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log fixture purpose
+        run: echo "This workflow is a dependabot reference fixture; scenario refs are intentionally non-executing."
       - name: Action reference via semver tag (intentionally old for dependabot updates)
         if: ${{ false }}
         # expected_behavior: replace tag by commit sha that the tag points to
