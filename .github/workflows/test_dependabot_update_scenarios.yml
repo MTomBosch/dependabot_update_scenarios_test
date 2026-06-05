@@ -64,26 +64,22 @@ jobs:
       - name: Action reference via commit with version comment
         if: ${{ false }}
         # expected_behavior: newest_semver_compatible_tag_commit
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        # 0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0 & v3
+        # 1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+      - name: Action reference via commit with version comment
+        if: ${{ false }}
+        # expected_behavior: newest_semver_compatible_tag_commit
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # 4.2.0
       - name: Action reference via commit with major version comment
         if: ${{ false }}
         # expected_behavior: newest_semver_compatible_tag_commit
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4
       - name: Action reference via commit with wrong version comment
         if: ${{ false }}
-        # v3.7.9 does not exist at all
-        # expected_behavior: newest_semver_compatible_tag_commit for 3.x
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.7.9
-      - name: Action reference via commit with wrong major version comment
-        if: ${{ false }}
-        # v4 exists but points to a different commit
-        # expected_behavior: newest_semver_compatible_tag_commit for 3.x
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v4
-      - name: Action reference via commit with version comment that has no related tag
-        if: ${{ false }}
-        # v3.3.2 exists as tag but not 3.3.2
-        # expected_behavior: newest_semver_compatible_tag_commit
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # 3.3.2
+        # v4.7.12 does not exist at all
+        # expected_behavior: newest_semver_compatible_tag_commit for 4.x
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.7.12
 
       - name: Action reference via commit without version comment
         if: ${{ false }}
