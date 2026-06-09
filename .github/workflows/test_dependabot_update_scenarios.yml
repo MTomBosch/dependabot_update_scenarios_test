@@ -31,6 +31,8 @@ permissions:
 #
 # When a ref is done via a branch (e.g. actions/checkout@main), then dependabot should update to the latest commit on that branch, but it does not do anything
 #
+# Assumption: By default all updates shall be semver compatible (minor and/or patch version update) even if the current reference e.g. 4.2 is already superseeded by new major versions
+# e.g. 6.0.2
 #
 #  Overall it can be said that dependabot does the following:
 # 1) If ref is a semver tag, then update to the latest semver compatible tag
@@ -38,7 +40,10 @@ permissions:
 #
 # Dependabot does NOT support the following:
 # - Replace any non commit sha ref (e.g. branch or tag) by a commit sha and then apply update rules
-#
+# - Cannot update to a new major version in all repos without touching in every repo the dependabot file to allow again major updates for certain dependencies.
+#   After that update was done and the pr was merged, the depbot config has to be changed again to exclude major updates for the dependencies where major updates should no more be applied.
+#   Reason for this approach: Infra team wants to control major version updates more strictly and not have them automatically applied everywhere, but for minor
+#   and patch updates they want to benefit from the automatic updates.
 
 jobs:
   dependabot-update-scenario-tests-steps-fixture-3:
@@ -105,6 +110,13 @@ jobs:
         # expected_behavior: Replace current commit by latest commit on default branch
         uses: mtombosch/cicd-actions/inter-repo-access@51883d9cd772bee5b7d139a2e6ffd8aeabca4224
 
+      - name: Action reference via commit with multi path version comment
+        if: ${{ false }}
+        # expected_behavior: update tag to dummy-composite/v1.0.1
+        # Repo has multiple tags (for the dummy action and dummy workflow)
+        uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@150be11f8e18450c38116b01268b2b7119b87931 # dummy-composite/v1.0.0
+
+
   workflow-reference-via-branch-fixture:
     if: ${{ false }}
     # Repo has no tags at all
@@ -116,11 +128,16 @@ jobs:
     # Repo has some tags v0.0.0 and v0.0.1 on non-latest commits, but commit reference is on main branch and is newer than the tags
     # Commit is from May 12 2026
     uses: mtombosch/cicd-workflows/.github/workflows/copyright.yml@a2885534f75cf360ecb1b3c589778846bcd4e170
-  workflow-reference-via-banch-fixture:
+  workflow-reference-via-branch-fixture-2:
     if: ${{ false }}
     # expected_behavior: latest_commit_on_branch
     # Repo has some tags v0.0.0 and v0.0.1
     uses: mtombosch/cicd-workflows/.github/workflows/bzlmod-lock-check.yml@main
+  workflow-reference-via-commit-with-multipath-version-fixture:
+    if: ${{ false }}
+    # expected_behavior: update tag to dummy-workflow/v1.1.0
+    # Repo has multiple tags (for the dummy action and dummy workflow)
+    uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@150be11f8e18450c38116b01268b2b7119b87931 # dummy-workflow/v1.0.0
 
   workflow-reference-via-commit-with-version-comment-fixture:
     if: ${{ false }}
