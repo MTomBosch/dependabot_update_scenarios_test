@@ -13,14 +13,9 @@ permissions:
 
 
 
-#
-# MISSING TEST SCENARIOS: referenced actions or workflows where the tag is not just the version but has a
-#                         prefix with the name of the action or workflow
-#
-
-
-#
-# ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ====================================
+# DEPENDABOT ANALYSIS RESULTS
+# ====================================
 #
 # Interesting: If same action is called within job (or even whole workflow) multiple times with different refs,
 # then dependabot should update every ref according to the config. But dependabot computes one new version and then sets it everywhere
@@ -37,6 +32,7 @@ permissions:
 #  Overall it can be said that dependabot does the following:
 # 1) If ref is a semver tag, then update to the latest semver compatible tag
 # 2) If ref is a commit sha with version comment, then update to the commit that the newest semver compatible tag points to
+# 3) If ref is a commit sha without version comment and not version tags in the repo, then update to the latest commit of the default branch
 #
 # Dependabot does NOT support the following:
 # - Replace any non commit sha ref (e.g. branch or tag) by a commit sha and then apply update rules
@@ -44,6 +40,7 @@ permissions:
 #   After that update was done and the pr was merged, the depbot config has to be changed again to exclude major updates for the dependencies where major updates should no more be applied.
 #   Reason for this approach: Infra team wants to control major version updates more strictly and not have them automatically applied everywhere, but for minor
 #   and patch updates they want to benefit from the automatic updates.
+# - If a repo has multiple path based tags, e.g. dummy-composite/v1.0.0, dummy-composite/v1.0.1, dummy-workflow/v1.0.0, dummy-workflow/v1.1.0, etc. then dependabot cannot do an update
 
 jobs:
   dependabot-update-scenario-tests-steps-fixture-3:
