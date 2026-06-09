@@ -6,4 +6,4 @@ runs:
   steps:
     - name: Print hello from composite action
       shell: bash
-      run: echo "hello world from action"
+      run: echo "hello world from action!"
