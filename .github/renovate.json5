@@ -45,6 +45,38 @@
       "versioningTemplate": "semver",
       "extractVersionTemplate": "^dummy-composite/(?<version>.+)$",
       "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/actions/dummy-composite@{{{newDigest}}} # dummy-composite/{{{newValue}}}"
+    },
+    {
+      // Handles tag-as-ref style: @dummy-workflow/v1.1.0 (no digest pinning, tag used directly as ref).
+      // After update, converts to the pinned-digest format: @<sha> # dummy-workflow/<newVersion>.
+      // newDigest is resolved via the pinDigests packageRule below.
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/workflows/dummy_reusable_workflow\\.yml@dummy-workflow/(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver",
+      "extractVersionTemplate": "^dummy-workflow/(?<version>.+)$",
+      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/workflows/dummy_reusable_workflow.yml@{{{newDigest}}} # dummy-workflow/{{{newValue}}}"
+    },
+    {
+      // Handles tag-as-ref style: @dummy-composite/v1.0.0 (no digest pinning, tag used directly as ref).
+      // After update, converts to the pinned-digest format: @<sha> # dummy-composite/<newVersion>.
+      // newDigest is resolved via the pinDigests packageRule below.
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/actions/dummy-composite@dummy-composite/(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver",
+      "extractVersionTemplate": "^dummy-composite/(?<version>.+)$",
+      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/actions/dummy-composite@{{{newDigest}}} # dummy-composite/{{{newValue}}}"
     }
   ],
   "packageRules": [
@@ -59,6 +91,19 @@
         "mtombosch/dependabot_update_scenarios_test"
       ],
       "enabled": false
+    },
+    {
+      // For the tag-as-ref custom managers (no currentDigest in matchStrings), pinDigests: true
+      // instructs Renovate to resolve and populate newDigest (commit SHA) for the new tag,
+      // making {{{newDigest}}} available in autoReplaceStringTemplate.
+      "description": "Pin digests for custom.regex path-prefixed tag-as-ref references",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "mtombosch/dependabot_update_scenarios_test"
+      ],
+      "pinDigests": true
     },
     {
       "description": "Exempt local test repository action/workflow references from minimum release age",
