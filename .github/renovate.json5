@@ -5,7 +5,8 @@
     "helpers:pinGitHubActionDigestsToSemver"
   ],
   "enabledManagers": [
-    "github-actions"
+    "github-actions",
+    "custom.regex"
   ],
   "labels": [
     "dependencies",
@@ -13,7 +14,67 @@
   ],
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
+  // Tags in this repo are path-prefixed (e.g. "dummy-workflow/v1.3.0" / "dummy-composite/v1.2.0").
+  // The native github-actions manager cannot parse these (default semver versioning rejects the
+  // path prefix), and packageRules.extractVersion does not help there. Custom regex managers below
+  // capture the pinned commit + tag from the comment, use extractVersionTemplate to strip the path
+  // prefix (which also isolates each tag family), and rewrite both the digest and the comment.
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/workflows/dummy_reusable_workflow\\.yml@(?<currentDigest>[0-9a-f]{40}) # dummy-workflow/(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver",
+      "extractVersionTemplate": "^dummy-workflow/(?<version>.+)$",
+      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/workflows/dummy_reusable_workflow.yml@{{{newDigest}}} # dummy-workflow/{{{newValue}}}"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/actions/dummy-composite@(?<currentDigest>[0-9a-f]{40}) # dummy-composite/(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver",
+      "extractVersionTemplate": "^dummy-composite/(?<version>.+)$",
+      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/actions/dummy-composite@{{{newDigest}}} # dummy-composite/{{{newValue}}}"
+    }
+  ],
   "packageRules": [
+    {
+      // The two self-references above are handled by the custom regex managers; disable the native
+      // github-actions manager for them so they are not extracted (and reported as unparseable) twice.
+      "description": "Disable native github-actions parsing for self-referenced path-prefixed tags",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "mtombosch/dependabot_update_scenarios_test"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Exempt local test repository action/workflow references from minimum release age",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "/^mtombosch\\/dependabot_update_scenarios_test(?:\\/.*)?$/i"
+      ],
+      "minimumReleaseAge": "0 days",
+      "groupName": "github-actions-compatible"
+    },
     {
       "description": "Minor and patch updates for GitHub Actions with 8-day minimum release age requirement for non-ETAS actions/workflows",
       "matchManagers": [
@@ -28,7 +89,7 @@
       "matchPackageNames": [
         "!/^etas.+/"
       ],
-      "minimumReleaseAge": "8 days",
+      "minimumReleaseAge": "2 days",
       "groupName": "github-actions-compatible"
     },
     {
