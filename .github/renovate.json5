@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigestsToSemver"
+  ],
+  "enabledManagers": [
+    "github-actions"
+  ],
+  "labels": [
+    "dependencies",
+    "github-actions"
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "packageRules": [
+    {
+      "description": "Apply 8-day minimum release age only to selected action/workflow full references",
+      "matchManagers": [
+        "github-actions"
+      ],
+      // Match against the full dependency reference (e.g. owner/repo or owner/repo/path/to/workflow).
+      // Use regex-string form required by matchPackageNames.
+      "matchPackageNames": [
+        "/^eclipse-score/cicd-workflows(?:/.*)?$/"
+      ],
+      "minimumReleaseAge": "8 days",
+      "groupName": "github-actions-compatible"
+    },
+    {
+      "description": "Allow only compatible (minor/patch) GitHub Actions updates by default",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Group compatible GitHub Actions updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "github-actions-compatible"
+    }
+  ]
+}
