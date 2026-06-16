@@ -9,15 +9,15 @@ Usage:
   ./run_renovate_local.sh [options]
 
 Options:
-  --local                 Run against local checkout
+  --local                 Run against local filesystem (no PR creation no file changes, only config validation)
   --github                Run against GitHub repository and allow PR creation
+  --repo <owner/name>     GitHub repository slug for --github mode
   --config <path>         Renovate config file (default: .github/renovate.json5)
   --image <image>         Renovate container image (default: ghcr.io/renovatebot/renovate)
   --version <tag>         Renovate image tag (default: 43.173.0)
-  --repo <owner/name>     GitHub repository slug for --github mode
-  --dry-run <mode>        Set RENOVATE_DRY_RUN (e.g. lookup, extract, full)
-  --log-level <level>     Renovate log level (default: info)
-  --log-file <path>       Write all Renovate docker output to this file (optional; file is overwritten each run)
+  --dry-run <mode>        Set RENOVATE_DRY_RUN (e.g. extract, lookup, full)
+  --log-level <level>     Renovate log level (default: info), automatically set to debug if --dry-run or --local is used
+  --log-file <path>       Write all Renovate execution output to this file (optional; file is overwritten each run)
   -h, --help              Show this help
 
 Environment:
@@ -114,13 +114,6 @@ if [[ -z "$MODE" ]]; then
   echo "Either --local or --github must be specified." >&2
   usage
   exit 1
-fi
-
-if [[ "$MODE" == "local" && -z "$DRY_RUN_MODE" ]]; then
-  LOG_LEVEL="debug"
-  echo "================================================================" >&2
-  echo "Note: Local mode enabled; LOG_LEVEL automatically set to 'debug'" >&2
-  echo "================================================================" >&2
 fi
 
 if [[ -n "$DRY_RUN_MODE" && "$DRY_RUN_MODE" != "null" ]]; then

@@ -23,7 +23,8 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/"
+        "/^\\.github/workflows/.+\\.ya?ml$/",
+        "/^\\.github/actions/.+/action\\.ya?ml$/"
       ],
       "matchStrings": [
         "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/workflows/dummy_reusable_workflow\\.yml@(?<currentDigest>[0-9a-f]{40}) # dummy-workflow/(?<currentValue>\\S+)"
@@ -36,7 +37,8 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/"
+        "/^\\.github/workflows/.+\\.ya?ml$/",
+        "/^\\.github/actions/.+/action\\.ya?ml$/"
       ],
       "matchStrings": [
         "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/actions/dummy-composite@(?<currentDigest>[0-9a-f]{40}) # dummy-composite/(?<currentValue>\\S+)"
@@ -52,7 +54,8 @@
       // newDigest is resolved via the pinDigests packageRule below.
       "customType": "regex",
       "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/"
+        "/^\\.github/workflows/.+\\.ya?ml$/",
+        "/^\\.github/actions/.+/action\\.ya?ml$/"
       ],
       "matchStrings": [
         "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/workflows/dummy_reusable_workflow\\.yml@dummy-workflow/(?<currentValue>\\S+)"
@@ -68,7 +71,8 @@
       // newDigest is resolved via the pinDigests packageRule below.
       "customType": "regex",
       "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/"
+        "/^\\.github/workflows/.+\\.ya?ml$/",
+        "/^\\.github/actions/.+/action\\.ya?ml$/"
       ],
       "matchStrings": [
         "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/actions/dummy-composite@dummy-composite/(?<currentValue>\\S+)"
