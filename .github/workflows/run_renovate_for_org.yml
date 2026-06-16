@@ -1,0 +1,75 @@
+name: Run Renovate for Organisation
+
+"on":
+  workflow_dispatch:
+    inputs:
+      organization:
+        description: >
+          GitHub organisation whose repositories should be processed.
+        required: true
+        type: string
+      include_pattern:
+        description: >
+          Optional regex applied to the full 'owner/repo' name.
+          Only repositories whose name matches this pattern are included.
+          Leave empty to include all repositories.
+        required: false
+        default: ""
+        type: string
+      exclude_pattern:
+        description: >
+          Optional regex applied to the full 'owner/repo' name.
+          Repositories whose name matches this pattern are excluded.
+          Applied after include_pattern. Leave empty to exclude nothing.
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: >
+          When true, Renovate is invoked with --dry-run full (no PRs created).
+          When false, a real Renovate run is performed (PRs may be created/updated).
+        required: false
+        default: true
+        type: boolean
+      upload_logs:
+        description: >
+          When true, all per-repository log files are uploaded as a workflow artifact.
+          Logs are also uploaded automatically when the workflow runs in debug mode
+          (i.e. when the ACTIONS_STEP_DEBUG or ACTIONS_RUNNER_DEBUG secret is set to true).
+        required: false
+        default: false
+        type: boolean
+      renovate_config:
+        description: >
+          GitHub repository file reference for the Renovate configuration file.
+          Format: owner/repo/path/to/file@ref
+          Example: myorg/renovate-config/.github/renovate.json5@main
+          Leave empty to use the .github/renovate.json5 from this repository.
+        required: false
+        default: ""
+        type: string
+      renovate_version:
+        description: >
+          Renovate Docker image tag, optionally with a SHA256 digest for exact image pinning.
+          Format: <tag> or <tag>@sha256:<digest>
+          Examples: 43.226.1
+                    43.226.1@sha256:<digest>
+          Pinning by digest is recommended in production to prevent supply-chain attacks via
+          tag mutation. The tag is still required when a digest is appended so that the
+          image reference remains human-readable.
+        required: false
+        default: "43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
+        type: string
+
+jobs:
+  run-renovate:
+    uses: ./.github/workflows/_run_renovate_for_org.yml
+    secrets: inherit
+    with:
+      organization: ${{ inputs.organization }}
+      include_pattern: ${{ inputs.include_pattern }}
+      exclude_pattern: ${{ inputs.exclude_pattern }}
+      dry_run: ${{ inputs.dry_run }}
+      upload_logs: ${{ inputs.upload_logs }}
+      renovate_config: ${{ inputs.renovate_config }}
+      renovate_version: ${{ inputs.renovate_version }}

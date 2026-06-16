@@ -240,25 +240,25 @@ echo "════════════════════════�
 
 assert_has_non_major_update "${RX}" \
   "uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@150be11f8e18450c38116b01268b2b7119b87931 # dummy-composite/v1.0.0" \
-  "v1.2.0" \
+  "dummy-composite/v1.2.0" \
   "49940a8c8dd7d60fc5a93c7e69b201c0e6af1d40" \
   "custom.regex: dummy-composite (pinned SHA) → update to latest dummy-composite/v1.x"
 
 assert_has_non_major_update "${RX}" \
   "uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@dummy-composite/v1.0.0" \
-  "v1.2.0" \
+  "dummy-composite/v1.2.0" \
   "49940a8c8dd7d60fc5a93c7e69b201c0e6af1d40" \
   "custom.regex: dummy-composite (tag-as-ref) → update to latest dummy-composite/v1.x"
 
 assert_has_non_major_update "${RX}" \
   "uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@150be11f8e18450c38116b01268b2b7119b87931 # dummy-workflow/v1.1.0" \
-  "v1.3.0" \
+  "dummy-workflow/v1.3.0" \
   "49940a8c8dd7d60fc5a93c7e69b201c0e6af1d40" \
   "custom.regex: dummy_reusable_workflow (pinned SHA) → update to latest dummy-workflow/v1.x"
 
 assert_has_non_major_update "${RX}" \
   "uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@dummy-workflow/v1.1.0" \
-  "v1.3.0" \
+  "dummy-workflow/v1.3.0" \
   "49940a8c8dd7d60fc5a93c7e69b201c0e6af1d40" \
   "custom.regex: dummy_reusable_workflow (tag-as-ref) → update to latest dummy-workflow/v1.x"
 

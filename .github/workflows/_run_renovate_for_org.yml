@@ -1,0 +1,191 @@
+name: Run Renovate for Organisation (reusable)
+
+"on":
+  workflow_call:
+    inputs:
+      organization:
+        description: >
+          GitHub organisation whose repositories should be processed.
+        required: true
+        type: string
+      include_pattern:
+        description: >
+          Optional regex applied to the full 'owner/repo' name.
+          Only repositories whose name matches this pattern are included.
+          Leave empty to include all repositories.
+        required: false
+        default: ""
+        type: string
+      exclude_pattern:
+        description: >
+          Optional regex applied to the full 'owner/repo' name.
+          Repositories whose name matches this pattern are excluded.
+          Applied after include_pattern. Leave empty to exclude nothing.
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: >
+          When true, Renovate is invoked with --dry-run full (no PRs created).
+          When false, a real Renovate run is performed (PRs may be created/updated).
+        required: false
+        default: true
+        type: boolean
+      upload_logs:
+        description: >
+          When true, all per-repository log files are uploaded as a workflow artifact.
+          Logs are also uploaded automatically when the workflow runs in debug mode
+          (i.e. when the ACTIONS_STEP_DEBUG or ACTIONS_RUNNER_DEBUG secret is set to true).
+        required: false
+        default: false
+        type: boolean
+      renovate_config:
+        description: >
+          GitHub repository file reference for the Renovate configuration file.
+          Format: owner/repo/path/to/file@ref
+          Example: myorg/renovate-config/.github/renovate.json5@main
+          Leave empty to use the .github/renovate.json5 from this (the workflow) repository.
+        required: false
+        default: ""
+        type: string
+      renovate_version:
+        description: >
+          Renovate Docker image tag, optionally with a SHA256 digest for exact image pinning.
+          Format: <tag> or <tag>@sha256:<digest>
+          Examples: 43.226.1
+                    43.226.1@sha256:<digest>
+          Pinning by digest is recommended in production to prevent supply-chain attacks via
+          tag mutation. The tag is still required when a digest is appended so that the
+          image reference remains human-readable.
+        required: false
+        default: "43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
+        type: string
+
+jobs:
+  get-repos:
+    name: Get repositories
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.list-repos.outputs.repos }}
+    steps:
+      - name: Authenticate gh CLI
+        run: echo "${{ secrets.ORG_LIST_TOKEN }}" | gh auth login --with-token
+
+      - name: List and filter repositories
+        id: list-repos
+        env:
+          INCLUDE_PATTERN: ${{ inputs.include_pattern }}
+          EXCLUDE_PATTERN: ${{ inputs.exclude_pattern }}
+        run: |
+          repos_json=$(gh repo list "${{ inputs.organization }}" \
+            --json nameWithOwner \
+            --limit 1000 \
+            --jq '[.[].nameWithOwner]')
+
+          # Apply include filter (empty pattern = include all)
+          if [[ -n "$INCLUDE_PATTERN" ]]; then
+            repos_json=$(echo "$repos_json" | jq --arg pattern "$INCLUDE_PATTERN" \
+              '[.[] | select(test($pattern))]')
+          fi
+
+          # Apply exclude filter (empty pattern = exclude nothing)
+          if [[ -n "$EXCLUDE_PATTERN" ]]; then
+            repos_json=$(echo "$repos_json" | jq --arg pattern "$EXCLUDE_PATTERN" \
+              '[.[] | select(test($pattern) | not)]')
+          fi
+
+          repo_count=$(echo "$repos_json" | jq 'length')
+          echo "Repositories to process: $repo_count"
+          echo "$repos_json" | jq -r '.[]'
+
+          echo "repos=$repos_json" >> "$GITHUB_OUTPUT"
+
+  run-renovate:
+    name: Run Renovate
+    runs-on: ubuntu-latest
+    needs: get-repos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Download Renovate configuration
+        if: ${{ inputs.renovate_config != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.ORG_LIST_TOKEN }}
+        run: |
+          CONFIG_REF="${{ inputs.renovate_config }}"
+
+          # Split at the last '@' to separate the ref from the file path
+          if [[ "$CONFIG_REF" == *@* ]]; then
+            REF="${CONFIG_REF##*@}"
+            PATH_PART="${CONFIG_REF%@*}"
+          else
+            REF=""
+            PATH_PART="$CONFIG_REF"
+          fi
+
+          # Parse owner/repo/file-path from the path component
+          OWNER="$(echo "$PATH_PART" | cut -d/ -f1)"
+          REPO_NAME="$(echo "$PATH_PART" | cut -d/ -f2)"
+          FILE_PATH="$(echo "$PATH_PART" | cut -d/ -f3-)"
+
+          API_PATH="repos/$OWNER/$REPO_NAME/contents/$FILE_PATH"
+          [[ -n "$REF" ]] && API_PATH="${API_PATH}?ref=${REF}"
+
+          echo "Downloading Renovate config from: $OWNER/$REPO_NAME/$FILE_PATH${REF:+ @ $REF}"
+          gh api "$API_PATH" --jq '.content' | base64 --decode > downloaded_renovate_config.json5
+
+      - name: Run Renovate for each repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+        run: |
+          set +e  # Do not abort on per-repo errors; collect them instead.
+
+          DRY_RUN_ARG=""
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            DRY_RUN_ARG="--dry-run full"
+          fi
+
+          CONFIG_ARG=""
+          if [[ "${{ inputs.renovate_config }}" != "" ]]; then
+            CONFIG_ARG="--config downloaded_renovate_config.json5"
+          fi
+
+          REPOS='${{ needs.get-repos.outputs.repos }}'
+          FAILED_REPOS=()
+
+          while IFS= read -r repo; do
+            SAFE_REPO="${repo//\//_}"
+
+            echo "::group::Renovate: $repo"
+
+            # shellcheck disable=SC2086  # word-splitting of arg variables is intentional
+            ./run_renovate.sh --github --repo "$repo" \
+              --version "${{ inputs.renovate_version }}" \
+              $DRY_RUN_ARG $CONFIG_ARG \
+              --log-file "renovate_${SAFE_REPO}.log"
+            exit_code=$?
+
+            echo "::endgroup::"
+
+            if [[ $exit_code -ne 0 ]]; then
+              FAILED_REPOS+=("$repo")
+            fi
+          done < <(echo "$REPOS" | jq -r '.[]')
+
+          if [[ ${#FAILED_REPOS[@]} -gt 0 ]]; then
+            echo "::error::Renovate failed for the following repositories:"
+            for repo in "${FAILED_REPOS[@]}"; do
+              echo "::error::  - $repo"
+            done
+            exit 1
+          fi
+
+      - name: Upload log files
+        # Run even when the Renovate step failed so that logs from partial runs are preserved.
+        if: ${{ always() && (inputs.upload_logs || runner.debug == '1') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: renovate-logs
+          path: renovate_*.log
+          if-no-files-found: warn

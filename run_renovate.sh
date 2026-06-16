@@ -13,7 +13,10 @@ Options:
   --github                Run against GitHub repository and allow PR creation
   --config <path>         Renovate config file (default: .github/renovate.json5)
   --image <image>         Renovate container image (default: ghcr.io/renovatebot/renovate)
-  --version <tag>         Renovate image tag (default: 43.173.0)
+  --version <tag>         Renovate image tag, optionally with SHA256 digest for exact pinning
+                          (default: 43.226.1)
+                          Examples: 43.226.1
+                                    43.226.1@sha256:<digest>
   --repo <owner/name>     GitHub repository slug for --github mode
   --dry-run <mode>        Set RENOVATE_DRY_RUN (e.g. lookup, extract, full)
   --log-level <level>     Renovate log level (default: info)
@@ -45,7 +48,7 @@ REPO_DIR="$SCRIPT_DIR"
 MODE=""
 CONFIG_FILE=".github/renovate.json5"
 RENOVATE_IMAGE="ghcr.io/renovatebot/renovate"
-RENOVATE_VERSION="43.173.0"
+RENOVATE_VERSION="43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
 REPO_SLUG=""
 DRY_RUN_MODE=""
 LOG_LEVEL="${LOG_LEVEL:-info}"

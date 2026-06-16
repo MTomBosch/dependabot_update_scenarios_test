@@ -12,88 +12,81 @@
     "dependencies",
     "github-actions"
   ],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 2,
+
+  // Run on all repos, without requiring local renovate.json
+  onboarding: false,
+  requireConfig: "ignored",
+
+  // Disable the dependency dashboard issue
+  dependencyDashboard: false,
+
+  // Limit PRs to 5 at a time, to avoid overwhelming maintainers
+  prConcurrentLimit: 5,
+
+  // Override default weekly schedule from config:recommended so Renovate
+  // runs every time the workflow triggers.
+  schedule: [
+    "at any time"
+  ],
+
+
   // Tags in this repo are path-prefixed (e.g. "dummy-workflow/v1.3.0" / "dummy-composite/v1.2.0").
   // The native github-actions manager cannot parse these (default semver versioning rejects the
-  // path prefix), and packageRules.extractVersion does not help there. Custom regex managers below
-  // capture the pinned commit + tag from the comment, use extractVersionTemplate to strip the path
-  // prefix (which also isolates each tag family), and rewrite both the digest and the comment.
+  // path prefix), and packageRules.extractVersion does not help there. Two generic custom regex
+  // managers below handle ALL path-prefixed self-references automatically — no per-action or
+  // per-workflow entries are needed. They capture the action/workflow path and the tag prefix
+  // dynamically via named groups, so any new action or workflow using this convention is covered
+  // without config changes.
+  //
+  // The two forms handled:
+  //   Pinned-digest: uses: owner/repo/<path>@<sha>       # <prefix>/<version>
+  //   Tag-as-ref:    uses: owner/repo/<path>@<prefix>/<version>
   "customManagers": [
     {
+      // Handles pinned-digest style: @<sha> # <prefix>/<version>
+      // currentValue captures the full prefixed tag (e.g. "dummy-composite/v1.0.0").
+      // Regex versioning with a 'compatibility' group restricts comparisons to tags with
+      // the same prefix, so dummy-composite and dummy-workflow tags never cross-contaminate.
+      // newValue is the full new tag name (e.g. "dummy-composite/v1.2.0"), used directly
+      // in the replacement template — no separate tagPrefix group is needed.
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^\\.github/actions/.+/action\\.ya?ml$/"
+        "/^\\.github/actions/.+/action\\.ya?ml$/",
       ],
       "matchStrings": [
-        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/workflows/dummy_reusable_workflow\\.yml@(?<currentDigest>[0-9a-f]{40}) # dummy-workflow/(?<currentValue>\\S+)"
+        "uses: (?<depName>[^/\\s]+/[^/\\s]+)/(?<actionPath>[^@\\s]+)@(?<currentDigest>[0-9a-f]{40}) # (?<currentValue>[^/\\s]+/\\S+)"
       ],
       "datasourceTemplate": "github-tags",
-      "versioningTemplate": "semver",
-      "extractVersionTemplate": "^dummy-workflow/(?<version>.+)$",
-      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/workflows/dummy_reusable_workflow.yml@{{{newDigest}}} # dummy-workflow/{{{newValue}}}"
+      "versioningTemplate": "regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
+      "autoReplaceStringTemplate": "uses: {{{depName}}}/{{{actionPath}}}@{{{newDigest}}} # {{{newValue}}}"
     },
     {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^\\.github/actions/.+/action\\.ya?ml$/"
-      ],
-      "matchStrings": [
-        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/actions/dummy-composite@(?<currentDigest>[0-9a-f]{40}) # dummy-composite/(?<currentValue>\\S+)"
-      ],
-      "datasourceTemplate": "github-tags",
-      "versioningTemplate": "semver",
-      "extractVersionTemplate": "^dummy-composite/(?<version>.+)$",
-      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/actions/dummy-composite@{{{newDigest}}} # dummy-composite/{{{newValue}}}"
-    },
-    {
-      // Handles tag-as-ref style: @dummy-workflow/v1.1.0 (no digest pinning, tag used directly as ref).
-      // After update, converts to the pinned-digest format: @<sha> # dummy-workflow/<newVersion>.
+      // Handles tag-as-ref style: @<prefix>/<version> (no digest pinning, tag used directly as ref).
+      // After update, converts to the pinned-digest format: @<sha> # <prefix>/<newVersion>.
       // newDigest is resolved via the pinDigests packageRule below.
+      // Same regex versioning + compatibility-group approach as the pinned-digest manager above.
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^\\.github/actions/.+/action\\.ya?ml$/"
+        "/^\\.github/actions/.+/action\\.ya?ml$/",
       ],
       "matchStrings": [
-        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/workflows/dummy_reusable_workflow\\.yml@dummy-workflow/(?<currentValue>\\S+)"
+        "uses: (?<depName>[^/\\s]+/[^/\\s]+)/(?<actionPath>[^@\\s]+)@(?<currentValue>[^/\\s]+/\\S+)"
       ],
       "datasourceTemplate": "github-tags",
-      "versioningTemplate": "semver",
-      "extractVersionTemplate": "^dummy-workflow/(?<version>.+)$",
-      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/workflows/dummy_reusable_workflow.yml@{{{newDigest}}} # dummy-workflow/{{{newValue}}}"
-    },
-    {
-      // Handles tag-as-ref style: @dummy-composite/v1.0.0 (no digest pinning, tag used directly as ref).
-      // After update, converts to the pinned-digest format: @<sha> # dummy-composite/<newVersion>.
-      // newDigest is resolved via the pinDigests packageRule below.
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/.+\\.ya?ml$/",
-        "/^\\.github/actions/.+/action\\.ya?ml$/"
-      ],
-      "matchStrings": [
-        "uses: (?<depName>mtombosch/dependabot_update_scenarios_test)/\\.github/actions/dummy-composite@dummy-composite/(?<currentValue>\\S+)"
-      ],
-      "datasourceTemplate": "github-tags",
-      "versioningTemplate": "semver",
-      "extractVersionTemplate": "^dummy-composite/(?<version>.+)$",
-      "autoReplaceStringTemplate": "uses: {{{depName}}}/.github/actions/dummy-composite@{{{newDigest}}} # dummy-composite/{{{newValue}}}"
+      "versioningTemplate": "regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
+      "autoReplaceStringTemplate": "uses: {{{depName}}}/{{{actionPath}}}@{{{newDigest}}} # {{{newValue}}}"
     }
   ],
   "packageRules": [
     {
-      // The two self-references above are handled by the custom regex managers; disable the native
-      // github-actions manager for them so they are not extracted (and reported as unparseable) twice.
-      "description": "Disable native github-actions parsing for self-referenced path-prefixed tags",
+      // Disable the native github-actions manager for path-prefixed tags so they are not extracted and reported as unparseable
+      "description": "Disable native github-actions parsing for path-prefixed tags",
       "matchManagers": [
         "github-actions"
       ],
-      "matchPackageNames": [
-        "mtombosch/dependabot_update_scenarios_test"
-      ],
+      "matchCurrentValue": "/^[^/\\s]+\\/\\S+$/",
       "enabled": false
     },
     {
@@ -104,28 +97,11 @@
       "matchManagers": [
         "custom.regex"
       ],
-      "matchPackageNames": [
-        "mtombosch/dependabot_update_scenarios_test"
-      ],
+      "groupName": "github-actions",
       "pinDigests": true
     },
     {
-      "description": "Exempt local test repository action/workflow references from minimum release age",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
-      "matchPackageNames": [
-        "/^mtombosch\\/dependabot_update_scenarios_test(?:\\/.*)?$/i"
-      ],
-      "minimumReleaseAge": "0 days",
-      "groupName": "github-actions-compatible"
-    },
-    {
-      "description": "Minor and patch updates for GitHub Actions with 8-day minimum release age requirement for non-ETAS actions/workflows",
+      "description": "Minor and patch updates for GitHub Actions with 3-day minimum release age requirement for non-ETAS actions/workflows",
       "matchManagers": [
         "github-actions"
       ],
@@ -138,11 +114,11 @@
       "matchPackageNames": [
         "!/^etas.+/"
       ],
-      "minimumReleaseAge": "2 days",
-      "groupName": "github-actions-compatible"
+      "minimumReleaseAge": "3 days",
+      "groupName": "github-actions"
     },
     {
-      "description": "Minor and patch updates for GitHub Actions for ETAS actions/workflows",
+      "description": "Minor and patch updates for GitHub Actions for ETAS actions/workflows, no min release age required",
       "matchManagers": [
         "github-actions"
       ],
@@ -155,7 +131,7 @@
       "matchPackageNames": [
         "/^etas.+/"
       ],
-      "groupName": "github-actions-compatible"
+      "groupName": "github-actions"
     },
     {
       "description": "Disable Docker image updates referenced from GitHub workflows",
