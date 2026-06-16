@@ -13,11 +13,13 @@
     "github-actions"
   ],
 
-  // Run on all repos, without requiring local renovate.json
+  // Central config: each target repository does not need its own renovate.json.
+  // Renovate will run on any repository it is pointed at without requiring onboarding.
   onboarding: false,
   requireConfig: "ignored",
 
-  // Disable the dependency dashboard issue
+  // Disable the dependency dashboard: avoids Renovate opening a tracking issue
+  // in every target repository.
   dependencyDashboard: false,
 
   // Limit PRs to 5 at a time, to avoid overwhelming maintainers
@@ -30,16 +32,18 @@
   ],
 
 
-  // Tags in this repo are path-prefixed (e.g. "dummy-workflow/v1.3.0" / "dummy-composite/v1.2.0").
-  // The native github-actions manager cannot parse these (default semver versioning rejects the
-  // path prefix), and packageRules.extractVersion does not help there. Two generic custom regex
-  // managers below handle ALL path-prefixed self-references automatically — no per-action or
-  // per-workflow entries are needed. They capture the action/workflow path and the tag prefix
-  // dynamically via named groups, so any new action or workflow using this convention is covered
+  // Target repositories may use path-prefixed tags for in-repo composite actions and
+  // reusable workflows (e.g. "dummy-workflow/v1.3.0", "dummy-composite/v1.2.0").
+  // The native github-actions manager rejects these tags because its default semver
+  // versioning cannot parse the path prefix, and packageRules.extractVersion does not
+  // apply at extraction time. Two generic custom regex managers below handle ALL
+  // path-prefixed self-references automatically — no per-action or per-workflow entries
+  // are needed. They capture the action/workflow path and the tag prefix dynamically
+  // via named groups, so any new action or workflow using this convention is covered
   // without config changes.
   //
   // The two forms handled:
-  //   Pinned-digest: uses: owner/repo/<path>@<sha>       # <prefix>/<version>
+  //   Pinned-digest: uses: owner/repo/<path>@<sha> # <prefix>/<version>
   //   Tag-as-ref:    uses: owner/repo/<path>@<prefix>/<version>
   "customManagers": [
     {
@@ -90,10 +94,10 @@
       "enabled": false
     },
     {
-      // For the tag-as-ref custom managers (no currentDigest in matchStrings), pinDigests: true
-      // instructs Renovate to resolve and populate newDigest (commit SHA) for the new tag,
-      // making {{{newDigest}}} available in autoReplaceStringTemplate.
-      "description": "Pin digests for custom.regex path-prefixed tag-as-ref references",
+      // For the tag-as-ref custom manager (which has no currentDigest in its matchString),
+      // pinDigests: true instructs Renovate to resolve the commit SHA for the new tag and
+      // populate newDigest, making {{{newDigest}}} available in autoReplaceStringTemplate.
+      "description": "Resolve and pin commit digests for custom.regex path-prefixed tag-as-ref references",
       "matchManagers": [
         "custom.regex"
       ],
@@ -101,7 +105,7 @@
       "pinDigests": true
     },
     {
-      "description": "Minor and patch updates for GitHub Actions with 3-day minimum release age requirement for non-ETAS actions/workflows",
+      "description": "Minor and patch updates for third-party GitHub Actions — 3-day minimum release age to allow time for retracted releases",
       "matchManagers": [
         "github-actions"
       ],
@@ -110,7 +114,7 @@
         "patch"
       ],
       // Match against the full dependency reference (e.g. owner/repo or owner/repo/path/to/workflow).
-      // Use regex-string form required by matchPackageNames.
+      // Regex-string form is required by matchPackageNames.
       "matchPackageNames": [
         "!/^etas.+/"
       ],
@@ -118,7 +122,7 @@
       "groupName": "github-actions"
     },
     {
-      "description": "Minor and patch updates for GitHub Actions for ETAS actions/workflows, no min release age required",
+      "description": "Minor and patch updates for ETAS GitHub Actions — no minimum release age required",
       "matchManagers": [
         "github-actions"
       ],
@@ -127,7 +131,7 @@
         "patch"
       ],
       // Match against the full dependency reference (e.g. owner/repo or owner/repo/path/to/workflow).
-      // Use regex-string form required by matchPackageNames.
+      // Regex-string form is required by matchPackageNames.
       "matchPackageNames": [
         "/^etas.+/"
       ],
