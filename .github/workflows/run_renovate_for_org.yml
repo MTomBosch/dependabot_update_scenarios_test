@@ -34,8 +34,7 @@ name: Run Renovate for Organisation
       upload_logs:
         description: >
           When true, all per-repository log files are uploaded as a workflow artifact.
-          Logs are also uploaded automatically when the workflow runs in debug mode
-          (i.e. when the ACTIONS_STEP_DEBUG or ACTIONS_RUNNER_DEBUG secret is set to true).
+          Logs are also uploaded automatically when the workflow runs in general debug mode
         required: false
         default: false
         type: boolean

@@ -126,9 +126,9 @@ GA="github-actions"
 RX="regex"
 
 echo ""
-echo "══════════════════════════════════════════════════════════════════════════"
+echo "════════════════════════════════════════════════════════════════════════════"
 echo " github-actions manager – references that SHOULD receive a non-major update"
-echo "══════════════════════════════════════════════════════════════════════════"
+echo "════════════════════════════════════════════════════════════════════════════"
 
 assert_has_non_major_update "${GA}" \
   "actions/setup-node@v3" \
@@ -212,9 +212,9 @@ assert_skipped "${GA}" \
   "actions/reusable-workflows@SHA  (comment 'main' stripped → unversioned-reference)"
 
 echo ""
-echo "══════════════════════════════════════════════════════════════════════════"
-echo " github-actions manager – self-refs DISABLED (handled by custom.regex only)"
-echo "══════════════════════════════════════════════════════════════════════════"
+echo "════════════════════════════════════════════════════════════════════════════════════════"
+echo " github-actions manager – prefix based tag refs DISABLED (handled by custom.regex only)"
+echo "════════════════════════════════════════════════════════════════════════════════════════"
 
 assert_skipped "${GA}" \
   "mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@150be11f8e18450c38116b01268b2b7119b87931 # dummy-composite/v1.0.0" \
@@ -233,10 +233,10 @@ assert_skipped "${GA}" \
   "dummy_reusable_workflow (tag-as-ref) → disabled in github-actions manager"
 
 echo ""
-echo "══════════════════════════════════════════════════════════════════════════"
-echo " custom.regex manager – self-refs MUST receive a non-major update"
+echo "══════════════════════════════════════════════════════════════════════════════"
+echo " custom.regex manager – prefix based tag refs MUST receive a non-major update"
 echo " (covers both .github/workflows/ and .github/actions/ files)"
-echo "══════════════════════════════════════════════════════════════════════════"
+echo "══════════════════════════════════════════════════════════════════════════════"
 
 assert_has_non_major_update "${RX}" \
   "uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@150be11f8e18450c38116b01268b2b7119b87931 # dummy-composite/v1.0.0" \
