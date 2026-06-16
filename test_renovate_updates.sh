@@ -15,7 +15,7 @@ LOG_FILE="${SCRIPT_DIR}/renovate_test.log"
 # ─── Step 1: Run Renovate ────────────────────────────────────────────────────
 echo "==> Running Renovate (--dry-run lookup, --log-format json)..."
 "${SCRIPT_DIR}/run_renovate.sh" \
-  --local \
+  --mode-local \
   --dry-run lookup \
   --log-file  "${LOG_FILE}" \
   --log-format json

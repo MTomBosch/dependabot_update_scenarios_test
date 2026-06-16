@@ -34,7 +34,8 @@ name: Run Renovate for Organisation (reusable)
       upload_logs:
         description: >
           When true, all per-repository log files are uploaded as a workflow artifact.
-          Logs are also uploaded automatically when the workflow runs in general debug mode
+          Logs are also uploaded automatically when the workflow runs in debug mode
+          (i.e. when the ACTIONS_STEP_DEBUG or ACTIONS_RUNNER_DEBUG secret is set to true).
         required: false
         default: false
         type: boolean
@@ -61,124 +62,34 @@ name: Run Renovate for Organisation (reusable)
         type: string
 
 jobs:
-  get-repos:
-    name: Get repositories
-    runs-on: ubuntu-latest
-    outputs:
-      repos: ${{ steps.list-repos.outputs.repos }}
-    steps:
-      - name: Authenticate gh CLI
-        run: echo "${{ secrets.ORG_LIST_TOKEN }}" | gh auth login --with-token
-
-      - name: List and filter repositories
-        id: list-repos
-        env:
-          INCLUDE_PATTERN: ${{ inputs.include_pattern }}
-          EXCLUDE_PATTERN: ${{ inputs.exclude_pattern }}
-        run: |
-          repos_json=$(gh repo list "${{ inputs.organization }}" \
-            --json nameWithOwner \
-            --limit 1000 \
-            --jq '[.[].nameWithOwner]')
-
-          # Apply include filter (empty pattern = include all)
-          if [[ -n "$INCLUDE_PATTERN" ]]; then
-            repos_json=$(echo "$repos_json" | jq --arg pattern "$INCLUDE_PATTERN" \
-              '[.[] | select(test($pattern))]')
-          fi
-
-          # Apply exclude filter (empty pattern = exclude nothing)
-          if [[ -n "$EXCLUDE_PATTERN" ]]; then
-            repos_json=$(echo "$repos_json" | jq --arg pattern "$EXCLUDE_PATTERN" \
-              '[.[] | select(test($pattern) | not)]')
-          fi
-
-          repo_count=$(echo "$repos_json" | jq 'length')
-          echo "Repositories to process: $repo_count"
-          echo "$repos_json" | jq -r '.[]'
-
-          echo "repos=$repos_json" >> "$GITHUB_OUTPUT"
-
   run-renovate:
     name: Run Renovate
     runs-on: ubuntu-latest
-    needs: get-repos
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - name: Download Renovate configuration
-        if: ${{ inputs.renovate_config != '' }}
+      - name: Run Renovate for organisation
+        # include_pattern and exclude_pattern are passed via env vars instead of being
+        # inlined as ${{ inputs.* }} arguments because GitHub Actions expression
+        # interpolation happens before the shell parses the script, which can mangle
+        # regex special characters (^, \, |, etc.). All other inputs are simple
+        # strings or booleans safe to inline directly.
         env:
-          GH_TOKEN: ${{ secrets.ORG_LIST_TOKEN }}
+          GITHUB_TOKEN:    ${{ secrets.RENOVATE_TOKEN }}
+          INCLUDE_PATTERN: ${{ inputs.include_pattern }}
+          EXCLUDE_PATTERN: ${{ inputs.exclude_pattern }}
         run: |
-          CONFIG_REF="${{ inputs.renovate_config }}"
+          ARGS=(
+            --mode-github-org "${{ inputs.organization }}"
+            --version "${{ inputs.renovate_version }}"
+          )
+          [[ "${{ inputs.dry_run }}"       == "true" ]] && ARGS+=(--dry-run full)
+          [[ -n "${{ inputs.renovate_config }}"      ]] && ARGS+=(--config "${{ inputs.renovate_config }}")
+          [[ -n "$INCLUDE_PATTERN"                   ]] && ARGS+=(--include-pattern "$INCLUDE_PATTERN")
+          [[ -n "$EXCLUDE_PATTERN"                   ]] && ARGS+=(--exclude-pattern "$EXCLUDE_PATTERN")
 
-          # Split at the last '@' to separate the ref from the file path
-          if [[ "$CONFIG_REF" == *@* ]]; then
-            REF="${CONFIG_REF##*@}"
-            PATH_PART="${CONFIG_REF%@*}"
-          else
-            REF=""
-            PATH_PART="$CONFIG_REF"
-          fi
-
-          # Parse owner/repo/file-path from the path component
-          OWNER="$(echo "$PATH_PART" | cut -d/ -f1)"
-          REPO_NAME="$(echo "$PATH_PART" | cut -d/ -f2)"
-          FILE_PATH="$(echo "$PATH_PART" | cut -d/ -f3-)"
-
-          API_PATH="repos/$OWNER/$REPO_NAME/contents/$FILE_PATH"
-          [[ -n "$REF" ]] && API_PATH="${API_PATH}?ref=${REF}"
-
-          echo "Downloading Renovate config from: $OWNER/$REPO_NAME/$FILE_PATH${REF:+ @ $REF}"
-          gh api "$API_PATH" --jq '.content' | base64 --decode > downloaded_renovate_config.json5
-
-      - name: Run Renovate for each repository
-        env:
-          GITHUB_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
-        run: |
-          set +e  # Do not abort on per-repo errors; collect them instead.
-
-          DRY_RUN_ARG=""
-          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
-            DRY_RUN_ARG="--dry-run full"
-          fi
-
-          CONFIG_ARG=""
-          if [[ "${{ inputs.renovate_config }}" != "" ]]; then
-            CONFIG_ARG="--config downloaded_renovate_config.json5"
-          fi
-
-          REPOS='${{ needs.get-repos.outputs.repos }}'
-          FAILED_REPOS=()
-
-          while IFS= read -r repo; do
-            SAFE_REPO="${repo//\//_}"
-
-            echo "::group::Renovate: $repo"
-
-            # shellcheck disable=SC2086  # word-splitting of arg variables is intentional
-            ./run_renovate.sh --github --repo "$repo" \
-              --version "${{ inputs.renovate_version }}" \
-              $DRY_RUN_ARG $CONFIG_ARG \
-              --log-file "renovate_${SAFE_REPO}.log"
-            exit_code=$?
-
-            echo "::endgroup::"
-
-            if [[ $exit_code -ne 0 ]]; then
-              FAILED_REPOS+=("$repo")
-            fi
-          done < <(echo "$REPOS" | jq -r '.[]')
-
-          if [[ ${#FAILED_REPOS[@]} -gt 0 ]]; then
-            echo "::error::Renovate failed for the following repositories:"
-            for repo in "${FAILED_REPOS[@]}"; do
-              echo "::error::  - $repo"
-            done
-            exit 1
-          fi
+          ./run_renovate.sh "${ARGS[@]}"
 
       - name: Upload log files
         # Run even when the Renovate step failed so that logs from partial runs are preserved.
