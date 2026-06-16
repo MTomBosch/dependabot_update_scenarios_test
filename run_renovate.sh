@@ -9,7 +9,7 @@ Usage:
   ./run_renovate.sh [options]
 
 Options:
-  --local                 Run against local checkout
+  --local                 Run against local files (no PR creation, no file changes, test config file)
   --github                Run against GitHub repository and allow PR creation
   --config <path>         Renovate config file (default: .github/renovate.json5)
   --image <image>         Renovate container image (default: ghcr.io/renovatebot/renovate)
@@ -17,6 +17,7 @@ Options:
   --repo <owner/name>     GitHub repository slug for --github mode
   --dry-run <mode>        Set RENOVATE_DRY_RUN (e.g. lookup, extract, full)
   --log-level <level>     Renovate log level (default: info)
+  --log-format <fmt>      Renovate log format: json or pretty (default: pretty)
   --log-file <path>       Write all Renovate docker output to this file (optional; file is overwritten each run)
   -h, --help              Show this help
 
@@ -24,14 +25,14 @@ Environment:
   GITHUB_TOKEN            Required for all modes (GitHub personal access token)
 
 Examples:
-  # Local test mode, no PR creation, no file changes, used mainly for testing config file syntax and match pattern correctness
-  ./run_renovate.sh --local
+  # Local standard test mode. Run against local files (no PR creation, no file changes, test config file)
+  GITHUB_TOKEN=*** ./run_renovate.sh --local
 
-  # Local test mode including the computation what the next version would be (= lookup)
-  ./run_renovate.sh --local --dry-run lookup
+  # Local test mode including the computation what the next version would be (= lookup next version from remote)
+  GITHUB_TOKEN=*** ./run_renovate.sh --local --dry-run lookup
 
   # Fully simulated GitHub run with no PR creation (dry-run)
-  ./run_renovate.sh --github --dry-run full
+  GITHUB_TOKEN=*** ./run_renovate.sh --github --dry-run full
 
   # Full GitHub run (can create/update PRs)
   GITHUB_TOKEN=*** ./run_renovate.sh --github --repo etas-eng/vsps_dev_infra_arch_doc
@@ -48,6 +49,7 @@ RENOVATE_VERSION="43.173.0"
 REPO_SLUG=""
 DRY_RUN_MODE=""
 LOG_LEVEL="${LOG_LEVEL:-info}"
+LOG_FORMAT="pretty"
 LOG_FILE=""
 
 while [[ $# -gt 0 ]]; do
@@ -92,6 +94,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --log-level)
       LOG_LEVEL="$2"
+      shift 2
+      ;;
+    --log-format)
+      if [[ "$2" != "json" && "$2" != "pretty" ]]; then
+        echo "Invalid --log-format value '$2'. Allowed values: json, pretty" >&2
+        usage
+        exit 1
+      fi
+      LOG_FORMAT="$2"
       shift 2
       ;;
     --log-file)
@@ -147,7 +158,7 @@ fi
 
 DOCKER_ENV=(
   -e "LOG_LEVEL=$LOG_LEVEL"
-  -e "LOG_FORMAT=pretty"
+  -e "LOG_FORMAT=$LOG_FORMAT"
   -e "RENOVATE_CONFIG_FILE=$CONFIG_FILE"
   -e "RENOVATE_GITHUB_COM_TOKEN=$GITHUB_TOKEN"
   -e "RENOVATE_TOKEN=$GITHUB_TOKEN"
