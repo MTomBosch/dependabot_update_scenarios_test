@@ -3,10 +3,24 @@ name: Run Renovate for Organisation (reusable)
 "on":
   workflow_call:
     inputs:
+      mode:
+        description: >
+          Renovate execution mode.
+          github-org: enumerate all repositories in the given organisation via
+          the GitHub API and run Renovate for each one. Before running renovate
+          the include_pattern and exclude_pattern are applied to the list of
+          repositories to determine which ones are processed.
+          remote: run Renovate once without an explicit repository argument;
+          the repositories to update must be listed in the Renovate config file.
+        required: false
+        default: "github-org"
+        type: string
       organization:
         description: >
           GitHub organisation whose repositories should be processed.
-        required: true
+          Required when mode is github-org; ignored for remote mode.
+        required: false
+        default: ""
         type: string
       include_pattern:
         description: >
@@ -41,10 +55,15 @@ name: Run Renovate for Organisation (reusable)
         type: boolean
       renovate_config:
         description: >
-          GitHub repository file reference for the Renovate configuration file.
-          Format: owner/repo/path/to/file@ref
-          Example: myorg/renovate-config/.github/renovate.json5@main
-          Leave empty to use the .github/renovate.json5 from this (the workflow) repository.
+          Renovate configuration file to use. Passed as-is to the --config argument
+          of run_renovate.sh.
+          Values starting with ./ are treated as a local path relative to the
+          checked-out repository root (e.g. ./.github/renovate.json5).
+          Values without a ./ prefix are treated as a remote GitHub file reference
+          (format: owner/repo/path/to/file@ref,
+          example: myorg/renovate-config/.github/renovate.json5@main).
+          Leave empty to use the default: ./.github/renovate.json5 from this
+          (the workflow) repository.
         required: false
         default: ""
         type: string
@@ -80,14 +99,22 @@ jobs:
           INCLUDE_PATTERN: ${{ inputs.include_pattern }}
           EXCLUDE_PATTERN: ${{ inputs.exclude_pattern }}
         run: |
-          ARGS=(
-            --mode-github-org "${{ inputs.organization }}"
-            --version "${{ inputs.renovate_version }}"
-          )
-          [[ "${{ inputs.dry_run }}"       == "true" ]] && ARGS+=(--dry-run full)
-          [[ -n "${{ inputs.renovate_config }}"      ]] && ARGS+=(--config "${{ inputs.renovate_config }}")
-          [[ -n "$INCLUDE_PATTERN"                   ]] && ARGS+=(--include-pattern "$INCLUDE_PATTERN")
-          [[ -n "$EXCLUDE_PATTERN"                   ]] && ARGS+=(--exclude-pattern "$EXCLUDE_PATTERN")
+          if [[ "${{ inputs.mode }}" == "remote" ]]; then
+            ARGS=(--mode-remote)
+          else
+            [[ -z "${{ inputs.organization }}" ]] && {
+              echo "::error::Input 'organization' is required when mode is 'github-org'."
+              exit 1
+            }
+            ARGS=(
+              --mode-github-org "${{ inputs.organization }}"
+            )
+            [[ -n "$INCLUDE_PATTERN" ]] && ARGS+=(--include-pattern "$INCLUDE_PATTERN")
+            [[ -n "$EXCLUDE_PATTERN" ]] && ARGS+=(--exclude-pattern "$EXCLUDE_PATTERN")
+          fi
+          ARGS+=(--version "${{ inputs.renovate_version }}")
+          [[ "${{ inputs.dry_run }}"  == "true" ]] && ARGS+=(--dry-run full)
+          [[ -n "${{ inputs.renovate_config }}" ]] && ARGS+=(--config "${{ inputs.renovate_config }}")
 
           ./run_renovate.sh "${ARGS[@]}"
 
