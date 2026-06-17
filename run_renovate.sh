@@ -423,10 +423,7 @@ run_org_mode() {
 main() {
   local cmd
   cmd="$(printf '%q ' "$0" "$@")"
-  echo "::group::Script invocation"
   echo "Call: ${cmd% }"
-  echo "GITHUB_TOKEN: ${GITHUB_TOKEN:+set (redacted)}"
-  echo "::endgroup::"
 
   parse_args "$@"
   validate_prerequisites
