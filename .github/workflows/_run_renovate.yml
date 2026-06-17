@@ -4,78 +4,74 @@ name: Run Renovate for Organisation (reusable)
   workflow_call:
     inputs:
       mode:
-        description: >
-          Renovate execution mode.
-          github-org: enumerate all repositories in the given organisation via
-          the GitHub API and run Renovate for each one. Before running renovate
-          the include_pattern and exclude_pattern are applied to the list of
-          repositories to determine which ones are processed.
-          remote: run Renovate once without an explicit repository argument;
-          the repositories to update must be listed in the Renovate config file.
+        description: "Renovate execution mode: github-org or remote."
+          # github-org: enumerate all repositories in the given organisation via
+          # the GitHub API and run Renovate for each one after applied the
+          # include_pattern and then the exclude_pattern.
+          # remote: run Renovate once without an explicit repository argument;
+          # the repositories to update must be listed in the Renovate config file.
         required: false
         default: "github-org"
         type: string
       organization:
-        description: >
-          GitHub organisation whose repositories should be processed.
-          Required when mode is github-org; ignored for remote mode.
+        description: "GitHub org name, only required for github-org mode"
+          # GitHub organisation whose repositories should be processed.
+          # Required when mode is github-org; ignored for remote mode.
         required: false
         default: ""
         type: string
       include_pattern:
-        description: >
-          Optional regex applied to the full 'owner/repo' name.
-          Only repositories whose name matches this pattern are included.
-          Leave empty to include all repositories.
+        description: "Regex pattern, applied to all repos of the specified GH org"
+          # Optional regex applied to the full 'owner/repo' name.
+          # Only repositories whose name matches this pattern are included.
+          # Leave empty to include all repositories.
         required: false
         default: ""
         type: string
       exclude_pattern:
-        description: >
-          Optional regex applied to the full 'owner/repo' name.
-          Repositories whose name matches this pattern are excluded.
-          Applied after include_pattern. Leave empty to exclude nothing.
+        description: "Regex pattern, applied to repos derived from the include_pattern"
+          # Optional regex applied to the full 'owner/repo' name.
+          # Repositories whose name matches this pattern are excluded.
+          # Applied after include_pattern. Leave empty to exclude nothing.
         required: false
         default: ""
         type: string
       dry_run:
-        description: >
-          When true, Renovate is invoked with --dry-run full (no PRs created).
-          When false, a real Renovate run is performed (PRs may be created/updated).
+        description: "Dry run?"
+          # When true, Renovate is invoked with --dry-run full (no PRs created).
+          # When false, a real Renovate run is performed (PRs may be created/updated).
         required: false
         default: true
         type: boolean
       upload_logs:
-        description: >
-          When true, all per-repository log files are uploaded as a workflow artifact.
-          Logs are also uploaded automatically when the workflow runs in debug mode
-          (i.e. when the ACTIONS_STEP_DEBUG or ACTIONS_RUNNER_DEBUG secret is set to true).
+        description: "Upload logs as workflow artifact?"
+          # When true, all per-repository log files are uploaded as a workflow artifact.
+          # Logs are also uploaded automatically when the workflow runs in general debug mode
         required: false
         default: false
         type: boolean
       renovate_config:
-        description: >
-          Renovate configuration file to use. Passed as-is to the --config argument
-          of run_renovate.sh.
-          Values starting with ./ are treated as a local path relative to the
-          checked-out repository root (e.g. ./.github/renovate.json5).
-          Values without a ./ prefix are treated as a remote GitHub file reference
-          (format: owner/repo/path/to/file@ref,
-          example: myorg/renovate-config/.github/renovate.json5@main).
-          Leave empty to use the default: ./.github/renovate.json5 from this
-          (the workflow) repository.
+        description: "Renovate config file reference/path"
+          # Renovate configuration file to use. Passed as-is to the --config argument
+          # of run_renovate.sh.
+          # Values starting with ./ are treated as a local path relative to the
+          # checked-out repository root (e.g. ./.github/renovate.json5).
+          # Values without a ./ prefix are treated as a remote GitHub file reference
+          # (format: owner/repo/path/to/file@ref,
+          # example: myorg/renovate-config/.github/renovate.json5@main).
+          # Leave empty to use the default: ./.github/renovate.json5 from this repository.
         required: false
         default: ""
         type: string
       renovate_version:
-        description: >
-          Renovate Docker image tag, optionally with a SHA256 digest for exact image pinning.
-          Format: <tag> or <tag>@sha256:<digest>
-          Examples: 43.226.1
-                    43.226.1@sha256:<digest>
-          Pinning by digest is recommended in production to prevent supply-chain attacks via
-          tag mutation. The tag is still required when a digest is appended so that the
-          image reference remains human-readable.
+        description: "Renovate Docker image version (tag and sha256 digest)"
+          # Renovate Docker image tag, optionally with a SHA256 digest for exact image pinning.
+          # Format: <tag> or <tag>@sha256:<digest>
+          # Examples: 43.226.1
+          #           43.226.1@sha256:<digest>
+          # Pinning by digest is recommended in production to prevent supply-chain attacks via
+          # tag mutation. The tag is still required when a digest is appended so that the
+          # image reference remains human-readable.
         required: false
         default: "43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
         type: string

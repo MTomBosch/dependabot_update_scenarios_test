@@ -4,35 +4,34 @@ name: Create GHA Release (reusable)
   workflow_call:
     inputs:
       action_workflow_files:
-        description: >
-          Newline- or comma-separated glob patterns (git pathspecs) for the files
-          whose commit history should be included in the release notes.
-          Examples: .github/workflows/*.yml
-                    .github/workflows/*.yml,.github/actions/**
-          Note: glob wildcards are supported natively by git (e.g. *.yml,
-          .github/**/*.yml). POSIX regular expressions are NOT supported.
+        description: Files whose changes shall be included in the release notes. Defined by glob patterns (git pathspecs) for the files
+        #   Newline- or comma-separated glob patterns (git pathspecs) for the files
+        #   whose commit history should be included in the release notes.
+        #   Examples: .github/workflows/*.yml
+        #             .github/workflows/*.yml,.github/actions/**
+        #   Note: glob wildcards are supported natively by git (e.g. *.yml,
+        #   .github/**/*.yml). POSIX regular expressions are NOT supported.
         required: true
         type: string
       previous_release:
-        description: >
-          Git tag marking the start of the commit range (exclusive).
-          Commits from this tag up to HEAD are considered for the release notes.
-          Leave empty to include all commits reachable from HEAD.
-          If the tag does not exist the workflow will fail with a git error.
+        description: Git tag of previous release, empty to create very first release
+        #   Git tag marking the start of the commit range (exclusive).
+        #   Commits from this tag up to HEAD are considered for the release notes.
+        #   Leave empty to include all commits reachable from HEAD.
+        #   If the tag does not exist the workflow will fail with a git error.
         required: false
         default: ""
         type: string
       next_release:
-        description: >
-          The git tag and GitHub release name to create.
-          The tag is set on the current HEAD commit of the workflow run.
+        description: Git tag (= release name) to create for the new release
+        #   The git tag and GitHub release name to create.
+        #   The tag is set on the current HEAD commit of the workflow run.
         required: true
         type: string
       include_merge_commits:
-        description: >
-          When true, merge commits are included in the release notes.
-          When false (default), merge commits are excluded (--no-merges is
-          passed to git log).
+        description: "Include merge commits in the release notes?"
+          # When true, merge commits are included in the release notes.
+          # When false (default), merge commits are excluded.
         required: false
         default: false
         type: boolean
