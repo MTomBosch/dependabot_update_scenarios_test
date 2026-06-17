@@ -342,11 +342,11 @@ _list_org_repos() {
     --jq '[.[].nameWithOwner]')
 
   if [[ -n "$INCLUDE_PATTERN" ]]; then
-    repos_json=$(jq --arg p "$INCLUDE_PATTERN" '[.[] | select(test($p))]' <<< "$repos_json")
+    repos_json=$(jq --arg p "$INCLUDE_PATTERN" '[.[] | select(test($p; "i"))]' <<< "$repos_json")
   fi
 
   if [[ -n "$EXCLUDE_PATTERN" ]]; then
-    repos_json=$(jq --arg p "$EXCLUDE_PATTERN" '[.[] | select(test($p) | not)]' <<< "$repos_json")
+    repos_json=$(jq --arg p "$EXCLUDE_PATTERN" '[.[] | select(test($p; "i") | not)]' <<< "$repos_json")
   fi
 
   echo "::group::Repositories matching filter" >&2
