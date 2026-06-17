@@ -20,6 +20,7 @@ PREVIOUS_RELEASE=""
 NEXT_RELEASE=""
 INCLUDE_MERGE_COMMITS="false"
 DRY_RUN="false"
+DRAFT="false"
 BRANCH_OVERRIDE=""
 
 # Populated by subsequent functions
@@ -47,6 +48,7 @@ Usage:
     [--previous-release <tag>]  \
     [--include-merge-commits]   \
     [--dry-run]                 \
+    [--draft]                   \
     [--branch <name>]
 
 Arguments:
@@ -77,6 +79,10 @@ Arguments:
       Optional flag. When present, behaves as if the current branch is not
       "main": prints what would be created but does not create the tag or the
       GitHub release.
+
+  --draft
+      Optional flag. When present, the GitHub release is created as a draft
+      (not published). Has no effect in dry-run mode or on non-main branches.
 
   --branch <name>
       Optional. Override the branch name used to decide whether to actually
@@ -161,6 +167,10 @@ parse_args() {
         DRY_RUN="true"
         shift
         ;;
+      --draft)
+        DRAFT="true"
+        shift
+        ;;
       --branch)
         if [[ $# -lt 2 ]]; then echo "ERROR: --branch requires a value."; exit $EXIT_USAGE; fi
         BRANCH_OVERRIDE="$2"
@@ -233,17 +243,21 @@ resolve_file_patterns() {
 
 build_git_log_args() {
   echo "::group::Build git log arguments"
+  local upper_bound="HEAD"
+  if [[ "$NEXT_RELEASE_TAG_EXISTS" == "true" ]]; then
+    upper_bound="$NEXT_RELEASE"
+    echo "Tag '${NEXT_RELEASE}' already exists — using it as upper bound instead of HEAD."
+  fi
+
   if [[ -n "$PREVIOUS_RELEASE" ]]; then
     if ! git rev-parse --verify "refs/tags/${PREVIOUS_RELEASE}" >/dev/null 2>&1; then
       echo "ERROR: Previous release tag '${PREVIOUS_RELEASE}' does not exist in this repository."
       exit $EXIT_PREVIOUS_TAG_NOT_FOUND
     fi
-    local upper_bound="HEAD"
-    if [[ "$NEXT_RELEASE_TAG_EXISTS" == "true" ]]; then
-      upper_bound="$NEXT_RELEASE"
-      echo "Tag '${NEXT_RELEASE}' already exists — using it as upper bound instead of HEAD."
-    fi
     RANGE_ARGS=("${PREVIOUS_RELEASE}..${upper_bound}")
+  else
+    # No lower bound — collect all commits from the beginning of the repository.
+    RANGE_ARGS=("${upper_bound}")
   fi
 
   if [[ "$INCLUDE_MERGE_COMMITS" != "true" ]]; then
@@ -253,6 +267,39 @@ build_git_log_args() {
   echo "--- git log command ---"
   echo "git log --format='- %s' ${MERGE_ARGS[*]+"${MERGE_ARGS[*]}"} ${RANGE_ARGS[*]+"${RANGE_ARGS[*]}"} -- ${PATTERNS[*]}"
   echo "-----------------------"
+  _log_gha_endgroup
+}
+
+log_debug_commits() {
+  echo "::group::Show all included and excluded (based on file patterns and merge commits) commits in specified history range"
+
+  # Build a lookup set of full SHAs that touch the file patterns (included).
+  declare -A _included_shas
+  while IFS= read -r sha; do
+    [[ -n "$sha" ]] && _included_shas["$sha"]=1
+  done < <(git log --format="%H" "${MERGE_ARGS[@]}" "${RANGE_ARGS[@]}" -- "${PATTERNS[@]}")
+
+  # Walk every commit in the range without any filters so that commits excluded
+  # due to the file-pattern filter OR the merge filter appear as [excluded].
+  local total=0 included_count=0
+  while IFS= read -r line; do
+    local full_sha rest short_sha subject marker
+    full_sha="${line:0:40}"
+    rest="${line:41}"
+    short_sha="${rest%% *}"
+    subject="${rest#* }"
+    if [[ -n "${_included_shas[$full_sha]+x}" ]]; then
+      marker="[included]"
+      (( included_count++ )) || true
+    else
+      marker="    [excluded]"
+    fi
+    echo "  ${marker} ${short_sha} ${subject}"
+    (( total++ )) || true
+  done < <(git log --format="%H %h %s" "${RANGE_ARGS[@]}")
+
+  echo ""
+  echo "  ${included_count} of ${total} commit(s) included."
   _log_gha_endgroup
 }
 
@@ -301,11 +348,10 @@ ensure_tag() {
     echo "Tag '${tag}' does not exist — dry run; skipping tag creation."
   else
     echo "Tag '${tag}' does not exist — creating and pushing tag at ${head_sha}."
-    if ! GH_TOKEN="$GITHUB_TOKEN" gh api repos/{owner}/{repo}/git/refs \
+    if ! GH_TOKEN="$GITHUB_TOKEN" gh api "repos/{owner}/{repo}/git/refs" \
       --method POST \
       --field "ref=refs/tags/${tag}" \
-      --field "sha=${head_sha}" \
-      --silent; then
+      --field "sha=${head_sha}"; then
       echo "ERROR: Failed to create tag '${tag}'."
       exit $EXIT_CREATE_TAG_FAILED
     fi
@@ -323,6 +369,7 @@ publish_release() {
     echo "On main branch — creating GitHub release '${NEXT_RELEASE}' at ${head_sha}."
     echo ""
     echo "Release notes:"
+    echo ""
     echo "${RELEASE_NOTES}"
     echo ""
     if [[ "$NEXT_RELEASE_EXISTS" == "true" ]]; then
@@ -330,10 +377,16 @@ publish_release() {
       _log_gha_endgroup
       exit $EXIT_RELEASE_EXISTS
     fi
+    local draft_flag=()
+    if [[ "$DRAFT" == "true" ]]; then
+      draft_flag=(--draft)
+      echo "Draft mode enabled — Only draft release will be created, but not published."
+    fi
     if ! GH_TOKEN="$GITHUB_TOKEN" gh release create "$NEXT_RELEASE" \
       --title "$NEXT_RELEASE" \
       --notes "$RELEASE_NOTES" \
-      --target "$head_sha"; then
+      --target "$head_sha" \
+      "${draft_flag[@]}"; then
       echo "ERROR: Failed to create GitHub release '${NEXT_RELEASE}'."
       exit $EXIT_CREATE_RELEASE_FAILED
     fi
@@ -364,6 +417,7 @@ main() {
   resolve_file_patterns
   check_next_release_tag
   build_git_log_args
+  log_debug_commits
   collect_release_notes
   ensure_tag
   publish_release
