@@ -251,8 +251,7 @@ _download_remote_config() {
   [[ -n "$ref" ]] && api_path="${api_path}?ref=${ref}"
 
   echo "Downloading Renovate config from: $owner/$repo_name/$file_path${ref:+ @ $ref}"
-  GH_TOKEN="$GITHUB_TOKEN" gh api "$api_path" --jq '.content' \
-    | base64 --decode > "$REPO_DIR/$_DOWNLOADED_CONFIG_NAME"
+  gh api "$api_path" --jq '.content' | base64 --decode > "$REPO_DIR/$_DOWNLOADED_CONFIG_NAME"
 }
 
 # ─── Docker environment ───────────────────────────────────────────────────────
@@ -277,6 +276,15 @@ build_docker_env() {
   if [[ -n "${HTTP_PROXY:-}"  ]]; then DOCKER_ENV+=( -e "HTTP_PROXY=${HTTP_PROXY}" );   fi
   if [[ -n "${https_proxy:-}" ]]; then DOCKER_ENV+=( -e "https_proxy=${https_proxy}" ); fi
   if [[ -n "${HTTPS_PROXY:-}" ]]; then DOCKER_ENV+=( -e "HTTPS_PROXY=${HTTPS_PROXY}" ); fi
+}
+
+# ─── GH authentication ───────────────────────────────────────────────────────
+gh_login() {
+  echo "::group::Login to GH"
+  gh auth login --with-token <<< "$GITHUB_TOKEN"
+  # Verify authentication is working (also surfaces clear errors for bad tokens).
+  gh auth status
+  echo "::endgroup::"
 }
 
 # ─── Output helper ────────────────────────────────────────────────────────────
@@ -354,7 +362,7 @@ _list_org_repos() {
   local repos_json
 
   echo "Getting all repos from the specified GH org..."
-  repos_json=$(GH_TOKEN="$GITHUB_TOKEN" gh repo list "$ORG" \
+  repos_json=$(gh repo list "$ORG" \
     --json nameWithOwner \
     --limit 1000 \
     --jq '[.[].nameWithOwner]')
@@ -433,6 +441,9 @@ run_org_mode() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 echo "Call: $(printf '%q ' "$0" "$@")"
+
+echo "DEBUG TRACE BEFORE CALLING FUNCTION gh_login"
+gh_login
 
 echo "::group::Env vars"
 printenv | sort
