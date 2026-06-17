@@ -1,4 +1,4 @@
-name: Run Renovate for Organisation
+name: Run Renovate
 
 "on":
   workflow_dispatch:
@@ -78,7 +78,7 @@ name: Run Renovate for Organisation
 
 jobs:
   run-renovate:
-    uses: ./.github/workflows/_run_renovate_for_org.yml
+    uses: ./.github/workflows/_run_renovate.yml
     secrets: inherit
     with:
       mode: ${{ inputs.mode }}

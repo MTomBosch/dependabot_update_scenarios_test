@@ -1,0 +1,68 @@
+name: Create GHA Release (reusable)
+
+"on":
+  workflow_call:
+    inputs:
+      action_workflow_files:
+        description: >
+          Newline- or comma-separated glob patterns (git pathspecs) for the files
+          whose commit history should be included in the release notes.
+          Examples: .github/workflows/*.yml
+                    .github/workflows/*.yml,.github/actions/**
+          Note: glob wildcards are supported natively by git (e.g. *.yml,
+          .github/**/*.yml). POSIX regular expressions are NOT supported.
+        required: true
+        type: string
+      previous_release:
+        description: >
+          Git tag marking the start of the commit range (exclusive).
+          Commits from this tag up to HEAD are considered for the release notes.
+          Leave empty to include all commits reachable from HEAD.
+          If the tag does not exist the workflow will fail with a git error.
+        required: false
+        default: ""
+        type: string
+      next_release:
+        description: >
+          The git tag and GitHub release name to create.
+          The tag is set on the current HEAD commit of the workflow run.
+        required: true
+        type: string
+      include_merge_commits:
+        description: >
+          When true, merge commits are included in the release notes.
+          When false (default), merge commits are excluded (--no-merges is
+          passed to git log).
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  create-release:
+    name: Create GHA Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Run create_gha_release.sh
+        env:
+          GITHUB_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
+          ACTION_WORKFLOW_FILES: ${{ inputs.action_workflow_files }}
+          PREVIOUS_RELEASE:      ${{ inputs.previous_release }}
+          NEXT_RELEASE:          ${{ inputs.next_release }}
+          INCLUDE_MERGE_COMMITS: ${{ inputs.include_merge_commits }}
+        run: |
+          ARGS=(
+            --files          "$ACTION_WORKFLOW_FILES"
+            --next-release   "$NEXT_RELEASE"
+            --branch         "$GITHUB_REF_NAME"
+          )
+          [[ -n "$PREVIOUS_RELEASE"                ]] && ARGS+=(--previous-release "$PREVIOUS_RELEASE")
+          [[ "$INCLUDE_MERGE_COMMITS" == "true"    ]] && ARGS+=(--include-merge-commits)
+
+          ./create_gha_release.sh "${ARGS[@]}"
