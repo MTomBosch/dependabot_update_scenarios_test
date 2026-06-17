@@ -412,6 +412,10 @@ run_org_mode() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 main() {
+  local cmd
+  cmd="$(printf '%q ' "$0" "$@")"
+  echo "Call: ${cmd% }" >&2
+
   parse_args "$@"
   validate_prerequisites
   resolve_config
