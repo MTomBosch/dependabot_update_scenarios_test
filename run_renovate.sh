@@ -11,6 +11,15 @@ readonly _DEFAULT_RENOVATE_IMAGE="ghcr.io/renovatebot/renovate"
 readonly _DEFAULT_RENOVATE_VERSION="43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
 readonly _DOWNLOADED_CONFIG_NAME=".renovate_downloaded_config.json5"
 
+# ─── Workflow command helpers ─────────────────────────────────────────────────
+# ::endgroup:: is only meaningful inside a GitHub Actions workflow run.
+# On a local terminal it would just print as noise, so suppress it.
+_log_gha_endgroup() {
+  if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
+    echo "::endgroup::"
+  fi
+}
+
 # ─── Exit codes ──────────────────────────────────────────────────────────────
 readonly EXIT_USAGE=2          # usage / bad argument
 readonly EXIT_NO_DOCKER=3      # docker not found
@@ -162,7 +171,6 @@ parse_args() {
     echo "Exactly one mode flag (--mode-local, --mode-remote, or --mode-github-org) is required." >&2
     usage; exit $EXIT_USAGE
   }
-  echo "DEBUG TRACE BEFORE CALLING FUNCTION _apply_log_level_defaults"
   _apply_log_level_defaults
   return 0
 }
@@ -190,40 +198,39 @@ validate_prerequisites() {
 
   if ! command -v docker >/dev/null 2>&1; then
     echo "docker is required but not available in PATH" >&2
-    echo "::endgroup::"
+    _log_gha_endgroup
     exit $EXIT_NO_DOCKER
   fi
   echo "docker: $(docker --version)"
 
   if [[ -z "${RENOVATE_GITHUB_COM_TOKEN:-}" ]]; then
     echo "RENOVATE_GITHUB_COM_TOKEN environment variable must be set and non-empty" >&2
-    echo "::endgroup::"
+    _log_gha_endgroup
     exit $EXIT_NO_TOKEN
   fi
 
   if [[ "$MODE" == "github-org" || -n "$CONFIG_REF" ]]; then
     command -v gh >/dev/null 2>&1 || {
       echo "gh (GitHub CLI) is required for --mode-github-org mode and --config remote ref but is not in PATH" >&2
-      echo "::endgroup::"
+      _log_gha_endgroup
       exit $EXIT_NO_GH
     }
     echo "gh: $(gh --version | head -1)"
 
     command -v jq >/dev/null 2>&1 || {
       echo "jq is required for --mode-github-org mode but is not in PATH" >&2
-      echo "::endgroup::"
+      _log_gha_endgroup
       exit $EXIT_NO_JQ
     }
     echo "jq: $(jq --version)"
   fi
 
-  echo "::endgroup::"
+  _log_gha_endgroup
 }
 
 # ─── Config resolution ────────────────────────────────────────────────────────
 resolve_config() {
   if [[ -n "$CONFIG_REF" ]]; then
-    echo "DEBUG TRACE BEFORE CALLING FUNCTION _download_remote_config"
     _download_remote_config "$CONFIG_REF"
     CONFIG_FILE="$_DOWNLOADED_CONFIG_NAME"
   fi
@@ -279,6 +286,19 @@ build_docker_env() {
   if [[ -n "${HTTPS_PROXY:-}" ]]; then DOCKER_ENV+=( -e "HTTPS_PROXY=${HTTPS_PROXY}" ); fi
 }
 
+# ─── Image pull ──────────────────────────────────────────────────────────────
+pull_renovate_image() {
+  echo "::group::Pull Renovate image"
+  # Derive the registry from the image name (everything before the first /).
+  local registry="${RENOVATE_IMAGE%%/*}"
+  echo "Logging in to $registry ..."
+  printenv RENOVATE_GITHUB_COM_TOKEN | docker login "$registry" --username x-access-token --password-stdin
+  echo "Pulling $RENOVATE_IMAGE:$RENOVATE_VERSION ..."
+  docker pull "$RENOVATE_IMAGE:$RENOVATE_VERSION"
+  docker logout "$registry"
+  _log_gha_endgroup
+}
+
 # ─── Output helper ────────────────────────────────────────────────────────────
 # Run a command, optionally teeing combined stdout+stderr to a log file.
 # Usage: _run_and_log <log-file-or-empty> <command> [args...]
@@ -311,7 +331,7 @@ run_local_mode() {
     "${local_env[@]}" \
     "$RENOVATE_IMAGE:$RENOVATE_VERSION" \
     renovate
-  echo "::endgroup::"
+  _log_gha_endgroup
 }
 
 # ─── Mode: remote ────────────────────────────────────────────────────────────
@@ -327,7 +347,7 @@ run_remote_mode() {
     -e "RENOVATE_PLATFORM=github" \
     "$RENOVATE_IMAGE:$RENOVATE_VERSION" \
     renovate
-  echo "::endgroup::"
+  _log_gha_endgroup
 }
 
 # ─── GitHub single-repository runner (internal, used by run_org_mode) ───────
@@ -372,14 +392,13 @@ _list_org_repos() {
 
   echo "Final repositories to process: $(jq 'length' <<< "$ORG_REPOS_JSON")"
   jq -r '.[]' <<< "$ORG_REPOS_JSON"
-  echo "::endgroup::"
+  _log_gha_endgroup
 }
 
 run_org_mode() {
   local repo safe_repo log_file exit_code
   local -a failed_repos=()
 
-  echo "DEBUG TRACE BEFORE CALLING FUNCTION _list_org_repos"
   _list_org_repos
   # Result is now in the global ORG_REPOS_JSON variable.
 
@@ -407,12 +426,11 @@ run_org_mode() {
     echo "::group::Renovate: $repo"
 
     set +e
-    echo "DEBUG TRACE BEFORE CALLING FUNCTION run_github_single_repo"
     run_github_single_repo "$repo" "$log_file"
     exit_code=$?
     set -e
 
-    echo "::endgroup::"
+    _log_gha_endgroup
 
     if [[ $exit_code -ne 0 ]]; then
       echo "::error::Renovate failed for $repo (exit code $exit_code)"
@@ -434,21 +452,14 @@ run_org_mode() {
 # ─── Main ─────────────────────────────────────────────────────────────────────
 echo "Call: $(printf '%q ' "$0" "$@")"
 
-echo "::group::Env vars"
-printenv | sort
-echo "::endgroup::"
-
-echo "DEBUG TRACE BEFORE CALLING FUNCTION parse_args"
 parse_args "$@"
-echo "DEBUG TRACE BEFORE CALLING FUNCTION validate_prerequisites"
 validate_prerequisites
-echo "DEBUG TRACE BEFORE CALLING FUNCTION resolve_config"
 resolve_config
-echo "DEBUG TRACE BEFORE CALLING FUNCTION build_docker_env"
 build_docker_env
+pull_renovate_image
 
 case "$MODE" in
-  local)       echo "DEBUG TRACE BEFORE CALLING FUNCTION run_local_mode";  run_local_mode ;;
-  remote)      echo "DEBUG TRACE BEFORE CALLING FUNCTION run_remote_mode"; run_remote_mode ;;
-  github-org)  echo "DEBUG TRACE BEFORE CALLING FUNCTION run_org_mode";    run_org_mode ;;
+  local)       run_local_mode ;;
+  remote)      run_remote_mode ;;
+  github-org)  run_org_mode ;;
 esac
