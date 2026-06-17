@@ -91,9 +91,9 @@ jobs:
         # regex special characters (^, \, |, etc.). All other inputs are simple
         # strings or booleans safe to inline directly.
         env:
-          GITHUB_TOKEN:    ${{ secrets.RENOVATE_TOKEN }}
-          INCLUDE_PATTERN: ${{ inputs.include_pattern }}
-          EXCLUDE_PATTERN: ${{ inputs.exclude_pattern }}
+          RENOVATE_GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_GITHUB_COM_TOKEN }}
+          INCLUDE_PATTERN:           ${{ inputs.include_pattern }}
+          EXCLUDE_PATTERN:           ${{ inputs.exclude_pattern }}
         shell: bash
         run: |
           if [[ "${{ inputs.mode }}" == "remote" ]]; then
