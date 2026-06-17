@@ -350,23 +350,26 @@ run_github_single_repo() {
 
 # ─── Mode: org ────────────────────────────────────────────────────────────────
 _list_org_repos() {
+  echo "::group::Get Repositories"
   local repos_json
 
+  echo "Getting all repos from the specified GH org..."
   repos_json=$(GH_TOKEN="$GITHUB_TOKEN" gh repo list "$ORG" \
     --json nameWithOwner \
     --limit 1000 \
     --jq '[.[].nameWithOwner]')
 
+  echo "Applying include pattern as filter..."
   if [[ -n "$INCLUDE_PATTERN" ]]; then
     repos_json=$(jq --arg p "$INCLUDE_PATTERN" '[.[] | select(test($p; "i"))]' <<< "$repos_json")
   fi
 
+  echo "Applying exclude pattern as filter..."
   if [[ -n "$EXCLUDE_PATTERN" ]]; then
     repos_json=$(jq --arg p "$EXCLUDE_PATTERN" '[.[] | select(test($p; "i") | not)]' <<< "$repos_json")
   fi
 
-  echo "::group::Repositories matching filter"
-  echo "Repositories to process: $(jq 'length' <<< "$repos_json")"
+  echo "Final repositories to process: $(jq 'length' <<< "$repos_json")"
   jq -r '.[]' <<< "$repos_json"
   echo "::endgroup::"
 
