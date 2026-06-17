@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-trap 'echo Failed on line or function start line no: $LINENO at command: $BASH_COMMAND && exit $?' ERR
+trap 'echo Failed on line or function start line no: $LINENO at command: $BASH_COMMAND' ERR
 
 # ─── Constants ───────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -427,6 +427,10 @@ run_org_mode() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 echo "Call: $(printf '%q ' "$0" "$@")"
+
+echo "::group::Env vars"
+printenv | sort
+echo "::endgroup::"
 
 echo "DEBUG TRACE BEFORE CALLING FUNCTION parse_args"
 parse_args "$@"
