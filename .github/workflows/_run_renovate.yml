@@ -114,6 +114,7 @@ jobs:
           [[ -n "${{ inputs.renovate_config }}" ]] && ARGS+=(--config "${{ inputs.renovate_config }}")
 
           ./run_renovate.sh "${ARGS[@]}"
+          exit $?
 
       - name: Upload log files
         # Run even when the Renovate step failed so that logs from partial runs are preserved.
