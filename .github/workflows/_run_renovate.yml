@@ -84,7 +84,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - name: Run Renovate for organisation
+      - name: Run Renovate
         # include_pattern and exclude_pattern are passed via env vars instead of being
         # inlined as ${{ inputs.* }} arguments because GitHub Actions expression
         # interpolation happens before the shell parses the script, which can mangle
@@ -94,6 +94,7 @@ jobs:
           GITHUB_TOKEN:    ${{ secrets.RENOVATE_TOKEN }}
           INCLUDE_PATTERN: ${{ inputs.include_pattern }}
           EXCLUDE_PATTERN: ${{ inputs.exclude_pattern }}
+        shell: bash
         run: |
           if [[ "${{ inputs.mode }}" == "remote" ]]; then
             ARGS=(--mode-remote)

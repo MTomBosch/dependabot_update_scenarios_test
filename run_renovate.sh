@@ -9,6 +9,15 @@ readonly _DEFAULT_RENOVATE_IMAGE="ghcr.io/renovatebot/renovate"
 readonly _DEFAULT_RENOVATE_VERSION="43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
 readonly _DOWNLOADED_CONFIG_NAME=".renovate_downloaded_config.json5"
 
+# ─── Exit codes ──────────────────────────────────────────────────────────────
+readonly EXIT_USAGE=2          # usage / bad argument
+readonly EXIT_NO_DOCKER=3      # docker not found
+readonly EXIT_NO_TOKEN=4       # GITHUB_TOKEN not set
+readonly EXIT_NO_GH=5          # gh CLI not found
+readonly EXIT_NO_JQ=6          # jq not found
+readonly EXIT_NO_CONFIG=7      # config file not found
+readonly EXIT_RENOVATE_FAILED=8 # one or more Renovate runs failed
+
 # ─── Usage ───────────────────────────────────────────────────────────────────
 usage() {
   cat <<'EOF'
@@ -115,13 +124,13 @@ parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --mode-local)
-        [[ -n "$MODE" ]] && { echo "Specify exactly one mode flag: --mode-local, --mode-remote, or --mode-github-org." >&2; usage; exit 1; }
+        [[ -n "$MODE" ]] && { echo "Specify exactly one mode flag: --mode-local, --mode-remote, or --mode-github-org." >&2; usage; exit $EXIT_USAGE; }
         MODE="local"; shift ;;
       --mode-remote)
-        [[ -n "$MODE" ]] && { echo "Specify exactly one mode flag: --mode-local, --mode-remote, or --mode-github-org." >&2; usage; exit 1; }
+        [[ -n "$MODE" ]] && { echo "Specify exactly one mode flag: --mode-local, --mode-remote, or --mode-github-org." >&2; usage; exit $EXIT_USAGE; }
         MODE="remote"; shift ;;
       --mode-github-org)
-        [[ -n "$MODE" ]] && { echo "Specify exactly one mode flag: --mode-local, --mode-remote, or --mode-github-org." >&2; usage; exit 1; }
+        [[ -n "$MODE" ]] && { echo "Specify exactly one mode flag: --mode-local, --mode-remote, or --mode-github-org." >&2; usage; exit $EXIT_USAGE; }
         MODE="github-org"; ORG="$2"; shift 2 ;;
       --config)
         if [[ "$2" == ./* ]]; then
@@ -136,20 +145,20 @@ parse_args() {
       --log-level)        LOG_LEVEL="$2";        shift 2 ;;
       --log-format)
         [[ "$2" != "json" && "$2" != "pretty" ]] && {
-          echo "Invalid --log-format value '$2'. Allowed values: json, pretty" >&2; usage; exit 1
+          echo "Invalid --log-format value '$2'. Allowed values: json, pretty" >&2; usage; exit $EXIT_USAGE
         }
         LOG_FORMAT="$2"; shift 2 ;;
       --log-file)         LOG_FILE="$2";         shift 2 ;;
       --include-pattern)  INCLUDE_PATTERN="$2";  shift 2 ;;
       --exclude-pattern)  EXCLUDE_PATTERN="$2";  shift 2 ;;
       -h|--help) usage; exit 0 ;;
-      *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+      *) echo "Unknown argument: $1" >&2; usage; exit $EXIT_USAGE ;;
     esac
   done
 
   [[ -z "$MODE" ]] && {
     echo "Exactly one mode flag (--mode-local, --mode-remote, or --mode-github-org) is required." >&2
-    usage; exit 1
+    usage; exit $EXIT_USAGE
   }
   _apply_log_level_defaults
   return 0
@@ -179,28 +188,28 @@ validate_prerequisites() {
   if ! command -v docker >/dev/null 2>&1; then
     echo "docker is required but not available in PATH" >&2
     echo "::endgroup::" >&2
-    exit 1
+    exit $EXIT_NO_DOCKER
   fi
   echo "docker: $(docker --version)" >&2
 
   if [[ -z "${GITHUB_TOKEN:-}" ]]; then
     echo "GITHUB_TOKEN environment variable must be set and non-empty" >&2
     echo "::endgroup::" >&2
-    exit 1
+    exit $EXIT_NO_TOKEN
   fi
 
   if [[ "$MODE" == "github-org" || -n "$CONFIG_REF" ]]; then
     command -v gh >/dev/null 2>&1 || {
       echo "gh (GitHub CLI) is required for --mode-github-org mode and --config remote ref but is not in PATH" >&2
       echo "::endgroup::" >&2
-      exit 1
+      exit $EXIT_NO_GH
     }
     echo "gh: $(gh --version | head -1)" >&2
 
     command -v jq >/dev/null 2>&1 || {
       echo "jq is required for --mode-github-org mode but is not in PATH" >&2
       echo "::endgroup::" >&2
-      exit 1
+      exit $EXIT_NO_JQ
     }
     echo "jq: $(jq --version)" >&2
   fi
@@ -216,7 +225,7 @@ resolve_config() {
   fi
 
   if [[ ! -f "$REPO_DIR/$CONFIG_FILE" ]]; then
-    echo "Config file not found: $REPO_DIR/$CONFIG_FILE" >&2; exit 1
+    echo "Config file not found: $REPO_DIR/$CONFIG_FILE" >&2; exit $EXIT_NO_CONFIG
   fi
 }
 
@@ -404,7 +413,7 @@ run_org_mode() {
     for repo in "${failed_repos[@]}"; do
       echo "::error::  - $repo" >&2
     done
-    exit 1
+    exit $EXIT_RENOVATE_FAILED
   fi
 
   echo "All repositories processed successfully." >&2
