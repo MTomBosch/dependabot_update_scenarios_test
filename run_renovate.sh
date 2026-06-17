@@ -168,53 +168,53 @@ parse_args() {
 _apply_log_level_defaults() {
   if [[ "$MODE" == "local" && -z "$DRY_RUN_MODE" ]]; then
     LOG_LEVEL="debug"
-    echo "================================================================" >&2
-    echo "Note: Local mode enabled; LOG_LEVEL automatically set to 'debug'" >&2
-    echo "================================================================" >&2
+    echo "================================================================"
+    echo "Note: Local mode enabled; LOG_LEVEL automatically set to 'debug'"
+    echo "================================================================"
   fi
 
   if [[ -n "$DRY_RUN_MODE" && "$DRY_RUN_MODE" != "null" ]]; then
     LOG_LEVEL="debug"
-    echo "==================================================================" >&2
-    echo "Note: Dry-run mode enabled; LOG_LEVEL automatically set to 'debug'" >&2
-    echo "==================================================================" >&2
+    echo "=================================================================="
+    echo "Note: Dry-run mode enabled; LOG_LEVEL automatically set to 'debug'"
+    echo "=================================================================="
   fi
 }
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 validate_prerequisites() {
-  echo "::group::Tool versions" >&2
+  echo "::group::Tool versions"
 
   if ! command -v docker >/dev/null 2>&1; then
     echo "docker is required but not available in PATH" >&2
-    echo "::endgroup::" >&2
+    echo "::endgroup::"
     exit $EXIT_NO_DOCKER
   fi
-  echo "docker: $(docker --version)" >&2
+  echo "docker: $(docker --version)"
 
   if [[ -z "${GITHUB_TOKEN:-}" ]]; then
     echo "GITHUB_TOKEN environment variable must be set and non-empty" >&2
-    echo "::endgroup::" >&2
+    echo "::endgroup::"
     exit $EXIT_NO_TOKEN
   fi
 
   if [[ "$MODE" == "github-org" || -n "$CONFIG_REF" ]]; then
     command -v gh >/dev/null 2>&1 || {
       echo "gh (GitHub CLI) is required for --mode-github-org mode and --config remote ref but is not in PATH" >&2
-      echo "::endgroup::" >&2
+      echo "::endgroup::"
       exit $EXIT_NO_GH
     }
-    echo "gh: $(gh --version | head -1)" >&2
+    echo "gh: $(gh --version | head -1)"
 
     command -v jq >/dev/null 2>&1 || {
       echo "jq is required for --mode-github-org mode but is not in PATH" >&2
-      echo "::endgroup::" >&2
+      echo "::endgroup::"
       exit $EXIT_NO_JQ
     }
-    echo "jq: $(jq --version)" >&2
+    echo "jq: $(jq --version)"
   fi
 
-  echo "::endgroup::" >&2
+  echo "::endgroup::"
 }
 
 # ─── Config resolution ────────────────────────────────────────────────────────
@@ -246,7 +246,7 @@ _download_remote_config() {
   api_path="repos/$owner/$repo_name/contents/$file_path"
   [[ -n "$ref" ]] && api_path="${api_path}?ref=${ref}"
 
-  echo "Downloading Renovate config from: $owner/$repo_name/$file_path${ref:+ @ $ref}" >&2
+  echo "Downloading Renovate config from: $owner/$repo_name/$file_path${ref:+ @ $ref}"
   GH_TOKEN="$GITHUB_TOKEN" gh api "$api_path" --jq '.content' \
     | base64 --decode > "$REPO_DIR/$_DOWNLOADED_CONFIG_NAME"
 }
@@ -358,10 +358,10 @@ _list_org_repos() {
     repos_json=$(jq --arg p "$EXCLUDE_PATTERN" '[.[] | select(test($p; "i") | not)]' <<< "$repos_json")
   fi
 
-  echo "::group::Repositories matching filter" >&2
-  echo "Repositories to process: $(jq 'length' <<< "$repos_json")" >&2
-  jq -r '.[]' <<< "$repos_json" >&2
-  echo "::endgroup::" >&2
+  echo "::group::Repositories matching filter"
+  echo "Repositories to process: $(jq 'length' <<< "$repos_json")"
+  jq -r '.[]' <<< "$repos_json"
+  echo "::endgroup::"
 
   echo "$repos_json"
 }
@@ -403,27 +403,30 @@ run_org_mode() {
     echo "::endgroup::"
 
     if [[ $exit_code -ne 0 ]]; then
-      echo "::error::Renovate failed for $repo (exit code $exit_code)" >&2
+      echo "::error::Renovate failed for $repo (exit code $exit_code)"
       failed_repos+=("$repo")
     fi
   done < <(jq -r '.[]' <<< "$repos_json")
 
   if [[ ${#failed_repos[@]} -gt 0 ]]; then
-    echo "::error::Renovate failed for the following repositories:" >&2
+    echo "::error::Renovate failed for the following repositories:"
     for repo in "${failed_repos[@]}"; do
-      echo "::error::  - $repo" >&2
+      echo "::error::  - $repo"
     done
     exit $EXIT_RENOVATE_FAILED
   fi
 
-  echo "All repositories processed successfully." >&2
+  echo "All repositories processed successfully."
 }
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 main() {
   local cmd
   cmd="$(printf '%q ' "$0" "$@")"
-  echo "Call: ${cmd% }" >&2
+  echo "::group::Script invocation"
+  echo "Call: ${cmd% }"
+  echo "GITHUB_TOKEN: ${GITHUB_TOKEN:+set (redacted)}"
+  echo "::endgroup::"
 
   parse_args "$@"
   validate_prerequisites
