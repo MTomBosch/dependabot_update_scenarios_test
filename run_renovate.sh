@@ -162,6 +162,7 @@ parse_args() {
     echo "Exactly one mode flag (--mode-local, --mode-remote, or --mode-github-org) is required." >&2
     usage; exit $EXIT_USAGE
   }
+  echo "DEBUG TRACE BEFORE CALLING FUNCTION _apply_log_level_defaults"
   _apply_log_level_defaults
   return 0
 }
@@ -222,6 +223,7 @@ validate_prerequisites() {
 # ─── Config resolution ────────────────────────────────────────────────────────
 resolve_config() {
   if [[ -n "$CONFIG_REF" ]]; then
+    echo "DEBUG TRACE BEFORE CALLING FUNCTION _download_remote_config"
     _download_remote_config "$CONFIG_REF"
     CONFIG_FILE="$_DOWNLOADED_CONFIG_NAME"
   fi
@@ -372,6 +374,7 @@ run_org_mode() {
   local repos_json repo safe_repo log_file exit_code
   local -a failed_repos=()
 
+  echo "DEBUG TRACE BEFORE CALLING FUNCTION _list_org_repos"
   repos_json=$(_list_org_repos)
 
   while IFS= read -r repo; do
@@ -398,6 +401,7 @@ run_org_mode() {
     echo "::group::Renovate: $repo"
 
     set +e
+    echo "DEBUG TRACE BEFORE CALLING FUNCTION run_github_single_repo"
     run_github_single_repo "$repo" "$log_file"
     exit_code=$?
     set -e
@@ -422,21 +426,19 @@ run_org_mode() {
 }
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
-main() {
-  local cmd
-  cmd="$(printf '%q ' "$0" "$@")"
-  echo "Call: ${cmd% }"
+echo "Call: $(printf '%q ' "$0" "$@")"
 
-  parse_args "$@"
-  validate_prerequisites
-  resolve_config
-  build_docker_env
+echo "DEBUG TRACE BEFORE CALLING FUNCTION parse_args"
+parse_args "$@"
+echo "DEBUG TRACE BEFORE CALLING FUNCTION validate_prerequisites"
+validate_prerequisites
+echo "DEBUG TRACE BEFORE CALLING FUNCTION resolve_config"
+resolve_config
+echo "DEBUG TRACE BEFORE CALLING FUNCTION build_docker_env"
+build_docker_env
 
-  case "$MODE" in
-    local)       run_local_mode ;;
-    remote)      run_remote_mode ;;
-    github-org)  run_org_mode ;;
-  esac
-}
-
-main "$@"
+case "$MODE" in
+  local)       echo "DEBUG TRACE BEFORE CALLING FUNCTION run_local_mode";  run_local_mode ;;
+  remote)      echo "DEBUG TRACE BEFORE CALLING FUNCTION run_remote_mode"; run_remote_mode ;;
+  github-org)  echo "DEBUG TRACE BEFORE CALLING FUNCTION run_org_mode";    run_org_mode ;;
+esac
