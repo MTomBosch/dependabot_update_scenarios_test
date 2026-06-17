@@ -251,7 +251,8 @@ _download_remote_config() {
   [[ -n "$ref" ]] && api_path="${api_path}?ref=${ref}"
 
   echo "Downloading Renovate config from: $owner/$repo_name/$file_path${ref:+ @ $ref}"
-  gh api "$api_path" --jq '.content' | base64 --decode > "$REPO_DIR/$_DOWNLOADED_CONFIG_NAME"
+  GH_TOKEN="${RENOVATE_GITHUB_COM_TOKEN}" gh api "$api_path" --jq '.content' \
+  | base64 --decode > "$REPO_DIR/$_DOWNLOADED_CONFIG_NAME"
 }
 
 # ─── Docker environment ───────────────────────────────────────────────────────
@@ -354,7 +355,7 @@ _list_org_repos() {
   echo "::group::Get Repositories"
 
   echo "Getting all repos from the specified GH org..."
-  ORG_REPOS_JSON=$(gh repo list "$ORG" \
+  ORG_REPOS_JSON=$(GH_TOKEN="${RENOVATE_GITHUB_COM_TOKEN}" gh repo list "$ORG" \
     --json nameWithOwner \
     --limit 1000 \
     --jq '[.[].nameWithOwner]')
