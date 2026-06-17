@@ -21,7 +21,7 @@ name: Run Renovate
         default: ""
         type: string
       include_pattern:
-        description: "Regex pattern, applied to all repos of the specified GH org"
+        description: "Regex pattern, applied (case insensitive) to all repos of the specified GH org"
           # Optional regex applied to the full 'owner/repo' name.
           # Only repositories whose name matches this pattern are included.
           # Leave empty to include all repositories.
@@ -29,7 +29,7 @@ name: Run Renovate
         default: ""
         type: string
       exclude_pattern:
-        description: "Regex pattern, applied to repos derived from the include_pattern"
+        description: "Regex pattern, applied (case insensitive) to repos derived from the include_pattern"
           # Optional regex applied to the full 'owner/repo' name.
           # Repositories whose name matches this pattern are excluded.
           # Applied after include_pattern. Leave empty to exclude nothing.
