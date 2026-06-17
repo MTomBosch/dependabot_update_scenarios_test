@@ -35,6 +35,16 @@ name: Create GHA Release
         required: false
         default: false
         type: boolean
+      dry_run:
+        description: "Dry run: generate release notes but do not create the tag or release"
+        required: false
+        default: false
+        type: boolean
+      draft:
+        description: "Create the GitHub release as a draft (not published)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   create-release:
@@ -45,3 +55,5 @@ jobs:
       previous_release:       ${{ inputs.previous_release }}
       next_release:           ${{ inputs.next_release }}
       include_merge_commits:  ${{ inputs.include_merge_commits }}
+      dry_run:                ${{ inputs.dry_run }}
+      draft:                  ${{ inputs.draft }}

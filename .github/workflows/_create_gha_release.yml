@@ -35,6 +35,16 @@ name: Create GHA Release (reusable)
         required: false
         default: false
         type: boolean
+      dry_run:
+        description: "Dry run: generate release notes but do not create the tag or release"
+        required: false
+        default: false
+        type: boolean
+      draft:
+        description: "Create the GitHub release as a draft (not published)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   create-release:
@@ -55,6 +65,8 @@ jobs:
           PREVIOUS_RELEASE:      ${{ inputs.previous_release }}
           NEXT_RELEASE:          ${{ inputs.next_release }}
           INCLUDE_MERGE_COMMITS: ${{ inputs.include_merge_commits }}
+          DRY_RUN:               ${{ inputs.dry_run }}
+          DRAFT:                 ${{ inputs.draft }}
         run: |
           ARGS=(
             --files          "$ACTION_WORKFLOW_FILES"
@@ -63,5 +75,7 @@ jobs:
           )
           [[ -n "$PREVIOUS_RELEASE"                ]] && ARGS+=(--previous-release "$PREVIOUS_RELEASE")
           [[ "$INCLUDE_MERGE_COMMITS" == "true"    ]] && ARGS+=(--include-merge-commits)
+          [[ "$DRY_RUN" == "true"                  ]] && ARGS+=(--dry-run)
+          [[ "$DRAFT" == "true"                    ]] && ARGS+=(--draft)
 
           ./create_gha_release.sh "${ARGS[@]}"
