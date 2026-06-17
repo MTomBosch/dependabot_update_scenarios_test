@@ -141,12 +141,12 @@ jobs:
     if: ${{ false }}
     # expected_behavior: update tag to dummy-workflow/v1.3.0
     # Repo has multiple tags (for the dummy action and dummy workflow)
-    uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@150be11f8e18450c38116b01268b2b7119b87931 # dummy-workflow/v1.1.0
+    uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@37e558f105c44c3a9180295e43b5e0f5cd664fc4 # dummy-workflow/v2.0.0
   workflow-reference-via-commit-with-multipath-version-fixture-2:
     if: ${{ false }}
     # expected_behavior: update tag to dummy-workflow/v1.3.0
     # Repo has multiple tags (for the dummy action and dummy workflow)
-    uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@dummy-workflow/v1.1.0
+    uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@dummy-workflow/v2.0.0
 
   workflow-reference-via-commit-with-version-comment-fixture:
     if: ${{ false }}
