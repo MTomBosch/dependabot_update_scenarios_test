@@ -265,15 +265,18 @@ build_docker_env() {
     -e "RENOVATE_TOKEN=$GITHUB_TOKEN"
   )
 
-  [[ -n "$DRY_RUN_MODE" ]] && DOCKER_ENV+=( -e "RENOVATE_DRY_RUN=$DRY_RUN_MODE" )
+  if [[ -n "$DRY_RUN_MODE" ]]; then DOCKER_ENV+=( -e "RENOVATE_DRY_RUN=$DRY_RUN_MODE" ); fi
 
   # Only set proxy vars if non-empty to avoid overriding container defaults.
-  [[ -n "${all_proxy:-}"   ]] && DOCKER_ENV+=( -e "all_proxy=${all_proxy}" )
-  [[ -n "${ALL_PROXY:-}"   ]] && DOCKER_ENV+=( -e "ALL_PROXY=${ALL_PROXY}" )
-  [[ -n "${http_proxy:-}"  ]] && DOCKER_ENV+=( -e "http_proxy=${http_proxy}" )
-  [[ -n "${HTTP_PROXY:-}"  ]] && DOCKER_ENV+=( -e "HTTP_PROXY=${HTTP_PROXY}" )
-  [[ -n "${https_proxy:-}" ]] && DOCKER_ENV+=( -e "https_proxy=${https_proxy}" )
-  [[ -n "${HTTPS_PROXY:-}" ]] && DOCKER_ENV+=( -e "HTTPS_PROXY=${HTTPS_PROXY}" )
+  # Use if/then/fi instead of [[ ]] && action: with set -e the overall exit code
+  # of a [[ ]] && action compound is 1 when the condition is false, which causes
+  # set -e to abort the script.
+  if [[ -n "${all_proxy:-}"   ]]; then DOCKER_ENV+=( -e "all_proxy=${all_proxy}" );     fi
+  if [[ -n "${ALL_PROXY:-}"   ]]; then DOCKER_ENV+=( -e "ALL_PROXY=${ALL_PROXY}" );     fi
+  if [[ -n "${http_proxy:-}"  ]]; then DOCKER_ENV+=( -e "http_proxy=${http_proxy}" );   fi
+  if [[ -n "${HTTP_PROXY:-}"  ]]; then DOCKER_ENV+=( -e "HTTP_PROXY=${HTTP_PROXY}" );   fi
+  if [[ -n "${https_proxy:-}" ]]; then DOCKER_ENV+=( -e "https_proxy=${https_proxy}" ); fi
+  if [[ -n "${HTTPS_PROXY:-}" ]]; then DOCKER_ENV+=( -e "HTTPS_PROXY=${HTTPS_PROXY}" ); fi
 }
 
 # ─── Output helper ────────────────────────────────────────────────────────────
