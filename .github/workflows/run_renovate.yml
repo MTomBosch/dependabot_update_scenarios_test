@@ -18,7 +18,7 @@ name: Run Renovate
           # GitHub organisation whose repositories should be processed.
           # Required when mode is github-org; ignored for remote mode.
         required: false
-        default: ""
+        default: "MTomBosch"
         type: string
       include_pattern:
         description: "Regex pattern, applied (case insensitive) to all repos of the specified GH org"
@@ -26,7 +26,7 @@ name: Run Renovate
           # Only repositories whose name matches this pattern are included.
           # Leave empty to include all repositories.
         required: false
-        default: ""
+        default: "MTomBosch/dependabot_update_scenarios_test"
         type: string
       exclude_pattern:
         description: "Regex pattern, applied (case insensitive) to repos derived from the include_pattern"
@@ -61,7 +61,7 @@ name: Run Renovate
           # example: myorg/renovate-config/.github/renovate.json5@main).
           # Leave empty to use the default: ./.github/renovate.json5 from this repository.
         required: false
-        default: ""
+        default: "./.github/renovate.json5"
         type: string
       renovate_version:
         description: "Renovate Docker image version (tag and sha256 digest)"
