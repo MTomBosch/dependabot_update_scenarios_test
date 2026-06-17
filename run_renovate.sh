@@ -14,7 +14,7 @@ readonly _DOWNLOADED_CONFIG_NAME=".renovate_downloaded_config.json5"
 # ─── Exit codes ──────────────────────────────────────────────────────────────
 readonly EXIT_USAGE=2          # usage / bad argument
 readonly EXIT_NO_DOCKER=3      # docker not found
-readonly EXIT_NO_TOKEN=4       # GITHUB_TOKEN not set
+readonly EXIT_NO_TOKEN=4       # RENOVATE_GITHUB_COM_TOKEN not set
 readonly EXIT_NO_GH=5          # gh CLI not found
 readonly EXIT_NO_JQ=6          # jq not found
 readonly EXIT_NO_CONFIG=7      # config file not found
@@ -77,33 +77,33 @@ Options (--mode-github-org mode only):
                            --include-pattern). Empty = exclude nothing.
 
 Environment:
-  GITHUB_TOKEN             Required for all modes (personal access token)
+  RENOVATE_GITHUB_COM_TOKEN    Required for all modes (personal access token)
 
 Examples:
   # Local config test (no PR creation, no file changes)
-  GITHUB_TOKEN=*** ./run_renovate.sh --mode-local
+  RENOVATE_GITHUB_COM_TOKEN=*** ./run_renovate.sh --mode-local
 
   # Local config test (no PR creation, no file changes)
-  GITHUB_TOKEN=*** ./run_renovate.sh --mode-local
+  RENOVATE_GITHUB_COM_TOKEN=*** ./run_renovate.sh --mode-local
 
   # Local dry-run including version lookup from remote
-  GITHUB_TOKEN=*** ./run_renovate.sh --mode-local --dry-run lookup
+  RENOVATE_GITHUB_COM_TOKEN=*** ./run_renovate.sh --mode-local --dry-run lookup
 
   # Remote mode dry-run (repos listed in renovate config)
-  GITHUB_TOKEN=*** ./run_renovate.sh --mode-remote --dry-run full
+  RENOVATE_GITHUB_COM_TOKEN=*** ./run_renovate.sh --mode-remote --dry-run full
 
   # Dry-run for a single repository (exact-match include pattern)
-  GITHUB_TOKEN=*** ./run_renovate.sh --mode-github-org myorg \
+  RENOVATE_GITHUB_COM_TOKEN=*** ./run_renovate.sh --mode-github-org myorg \
     --include-pattern '^myorg/myrepo$' \
     --dry-run full
 
   # Dry-run across all repos in an org, filtered by name pattern
-  GITHUB_TOKEN=*** ./run_renovate.sh --mode-github-org myorg \
+  RENOVATE_GITHUB_COM_TOKEN=*** ./run_renovate.sh --mode-github-org myorg \
     --include-pattern '^myorg/service-' \
     --dry-run full
 
   # Real org-wide run with a centrally-managed remote config
-  GITHUB_TOKEN=*** ./run_renovate.sh --mode-github-org myorg \
+  RENOVATE_GITHUB_COM_TOKEN=*** ./run_renovate.sh --mode-github-org myorg \
     --config myorg/renovate-config/.github/renovate.json5@main \
     --version 43.226.1@sha256:<digest>
 EOF
@@ -195,8 +195,8 @@ validate_prerequisites() {
   fi
   echo "docker: $(docker --version)"
 
-  if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-    echo "GITHUB_TOKEN environment variable must be set and non-empty" >&2
+  if [[ -z "${RENOVATE_GITHUB_COM_TOKEN:-}" ]]; then
+    echo "RENOVATE_GITHUB_COM_TOKEN environment variable must be set and non-empty" >&2
     echo "::endgroup::"
     exit $EXIT_NO_TOKEN
   fi
@@ -260,8 +260,8 @@ build_docker_env() {
     -e "LOG_LEVEL=$LOG_LEVEL"
     -e "LOG_FORMAT=$LOG_FORMAT"
     -e "RENOVATE_CONFIG_FILE=$CONFIG_FILE"
-    -e "RENOVATE_GITHUB_COM_TOKEN=$GITHUB_TOKEN"
-    -e "RENOVATE_TOKEN=$GITHUB_TOKEN"
+    -e "RENOVATE_GITHUB_COM_TOKEN=$RENOVATE_GITHUB_COM_TOKEN"
+    -e "RENOVATE_TOKEN=$RENOVATE_GITHUB_COM_TOKEN"
   )
 
   if [[ -n "$DRY_RUN_MODE" ]]; then DOCKER_ENV+=( -e "RENOVATE_DRY_RUN=$DRY_RUN_MODE" ); fi
@@ -276,15 +276,6 @@ build_docker_env() {
   if [[ -n "${HTTP_PROXY:-}"  ]]; then DOCKER_ENV+=( -e "HTTP_PROXY=${HTTP_PROXY}" );   fi
   if [[ -n "${https_proxy:-}" ]]; then DOCKER_ENV+=( -e "https_proxy=${https_proxy}" ); fi
   if [[ -n "${HTTPS_PROXY:-}" ]]; then DOCKER_ENV+=( -e "HTTPS_PROXY=${HTTPS_PROXY}" ); fi
-}
-
-# ─── GH authentication ───────────────────────────────────────────────────────
-gh_login() {
-  echo "::group::Login to GH"
-  gh auth login --with-token <<< "$GITHUB_TOKEN"
-  # Verify authentication is working (also surfaces clear errors for bad tokens).
-  gh auth status
-  echo "::endgroup::"
 }
 
 # ─── Output helper ────────────────────────────────────────────────────────────
@@ -357,39 +348,39 @@ run_github_single_repo() {
 }
 
 # ─── Mode: org ────────────────────────────────────────────────────────────────
+# Result is stored in the global ORG_REPOS_JSON instead of returned via stdout,
+# so all logging inside this function can use plain echo without >&2.
 _list_org_repos() {
   echo "::group::Get Repositories"
-  local repos_json
 
   echo "Getting all repos from the specified GH org..."
-  repos_json=$(gh repo list "$ORG" \
+  ORG_REPOS_JSON=$(gh repo list "$ORG" \
     --json nameWithOwner \
     --limit 1000 \
     --jq '[.[].nameWithOwner]')
 
   echo "Applying include pattern as filter..."
   if [[ -n "$INCLUDE_PATTERN" ]]; then
-    repos_json=$(jq --arg p "$INCLUDE_PATTERN" '[.[] | select(test($p; "i"))]' <<< "$repos_json")
+    ORG_REPOS_JSON=$(jq --arg p "$INCLUDE_PATTERN" '[.[] | select(test($p; "i"))]' <<< "$ORG_REPOS_JSON")
   fi
 
   echo "Applying exclude pattern as filter..."
   if [[ -n "$EXCLUDE_PATTERN" ]]; then
-    repos_json=$(jq --arg p "$EXCLUDE_PATTERN" '[.[] | select(test($p; "i") | not)]' <<< "$repos_json")
+    ORG_REPOS_JSON=$(jq --arg p "$EXCLUDE_PATTERN" '[.[] | select(test($p; "i") | not)]' <<< "$ORG_REPOS_JSON")
   fi
 
-  echo "Final repositories to process: $(jq 'length' <<< "$repos_json")"
-  jq -r '.[]' <<< "$repos_json"
+  echo "Final repositories to process: $(jq 'length' <<< "$ORG_REPOS_JSON")"
+  jq -r '.[]' <<< "$ORG_REPOS_JSON"
   echo "::endgroup::"
-
-  echo "$repos_json"
 }
 
 run_org_mode() {
-  local repos_json repo safe_repo log_file exit_code
+  local repo safe_repo log_file exit_code
   local -a failed_repos=()
 
   echo "DEBUG TRACE BEFORE CALLING FUNCTION _list_org_repos"
-  repos_json=$(_list_org_repos)
+  _list_org_repos
+  # Result is now in the global ORG_REPOS_JSON variable.
 
   while IFS= read -r repo; do
     safe_repo="${repo//\//_}"
@@ -426,7 +417,7 @@ run_org_mode() {
       echo "::error::Renovate failed for $repo (exit code $exit_code)"
       failed_repos+=("$repo")
     fi
-  done < <(jq -r '.[]' <<< "$repos_json")
+  done < <(jq -r '.[]' <<< "$ORG_REPOS_JSON")
 
   if [[ ${#failed_repos[@]} -gt 0 ]]; then
     echo "::error::Renovate failed for the following repositories:"
@@ -441,9 +432,6 @@ run_org_mode() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 echo "Call: $(printf '%q ' "$0" "$@")"
-
-echo "DEBUG TRACE BEFORE CALLING FUNCTION gh_login"
-gh_login
 
 echo "::group::Env vars"
 printenv | sort
