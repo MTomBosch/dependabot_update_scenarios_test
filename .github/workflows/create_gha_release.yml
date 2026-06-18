@@ -48,7 +48,7 @@ name: Create GHA Release
         default: false
         type: boolean
       notes_from_tag:
-        description: "Take release notes from the annotated tag message of next_release instead of generating them from commit history. The tag must already exist. Mutually exclusive with action_workflow_files."
+        description: "Take release notes from the annotated tag message of next_release instead of generating them from commit history.
         required: false
         default: false
         type: boolean
