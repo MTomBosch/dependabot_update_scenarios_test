@@ -12,7 +12,7 @@ on:
         #   Note: glob wildcards are supported natively by git (e.g. *.yml,
         #   .github/**/*.yml). POSIX regular expressions are NOT supported.
         required: false
-        default: ".github/actions/**"
+        default: ""
         type: string
       previous_release:
         description: Git tag of previous release, empty to create very first release
@@ -28,7 +28,7 @@ on:
         #   The git tag and GitHub release name to create.
         #   The tag is set on the current HEAD commit of the workflow run.
         required: true
-        default: "dummy-composite/v1.2.0"
+        default: ""
         type: string
       include_merge_commits:
         description: "Include merge commits in the release notes?"
