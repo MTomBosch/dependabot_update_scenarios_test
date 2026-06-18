@@ -13,8 +13,8 @@
     "custom.regex"
   ],
   "labels": [
-    "dependencies",
-    "github-actions"
+    "dependencies-update",
+    "renovate"
   ],
 
   // Central config: each target repository does not need its own renovate.json.
