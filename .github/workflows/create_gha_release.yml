@@ -12,7 +12,7 @@ name: Create GHA Release
         #   Note: glob wildcards are supported natively by git (e.g. *.yml,
         #   .github/**/*.yml). POSIX regular expressions are NOT supported.
         required: false
-        default: ""
+        default: ".github/actions/**"
         type: string
       previous_release:
         description: Git tag of previous release, empty to create very first release
@@ -28,6 +28,7 @@ name: Create GHA Release
         #   The git tag and GitHub release name to create.
         #   The tag is set on the current HEAD commit of the workflow run.
         required: true
+        default: "dummy-composite/v1.2.0"
         type: string
       include_merge_commits:
         description: "Include merge commits in the release notes?"
@@ -39,7 +40,7 @@ name: Create GHA Release
       dry_run:
         description: "Dry run: generate release notes but do not create the tag or release"
         required: false
-        default: false
+        default: true
         type: boolean
       draft:
         description: "Create the GitHub release as a draft (not published)"
