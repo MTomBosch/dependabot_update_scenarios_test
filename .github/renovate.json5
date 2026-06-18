@@ -123,7 +123,8 @@
     {
       "description": "Minor and patch updates for third-party GitHub Actions — 3-day minimum release age to allow time for retracted releases",
       "matchManagers": [
-        "github-actions"
+        "github-actions",
+        "custom.regex"
       ],
       "matchUpdateTypes": [
         "minor",
@@ -140,7 +141,8 @@
     {
       "description": "Minor and patch updates for ETAS GitHub Actions — no minimum release age required",
       "matchManagers": [
-        "github-actions"
+        "github-actions",
+        "custom.regex"
       ],
       "matchUpdateTypes": [
         "minor",
