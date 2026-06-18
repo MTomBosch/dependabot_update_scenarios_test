@@ -2,7 +2,11 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "helpers:pinGitHubActionDigestsToSemver"
+    "helpers:pinGitHubActionDigestsToSemver",
+    // Disable the dependency dashboard: avoids Renovate opening a tracking issue
+    // in every target repository.
+    // Needs to be disabled twice, see https://github.com/renovatebot/renovate/discussions/31221#discussioncomment-10551423
+    ":disableDependencyDashboard"
   ],
   "enabledManagers": [
     "github-actions",
@@ -20,6 +24,7 @@
 
   // Disable the dependency dashboard: avoids Renovate opening a tracking issue
   // in every target repository.
+  // Needs to be disabled twice, see https://github.com/renovatebot/renovate/discussions/31221#discussioncomment-10551423
   dependencyDashboard: false,
 
   // Limit PRs to 5 at a time, to avoid overwhelming maintainers
