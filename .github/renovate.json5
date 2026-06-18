@@ -103,13 +103,23 @@
       // For the tag-as-ref custom manager (which has no currentDigest in its matchString),
       // pinDigests: true instructs Renovate to resolve the commit SHA for the new tag and
       // populate newDigest, making {{{newDigest}}} available in autoReplaceStringTemplate.
-      "description": "Resolve and pin commit digests for custom.regex path-prefixed tag-as-ref references",
+      "description": "Resolve and pin to commit digests for custom.regex path-prefixed tag-as-ref references",
       "matchManagers": [
         "custom.regex"
       ],
-      "groupName": "github-actions-minor-patch-update",
+      "groupName": "gha-pin-digests",
       "pinDigests": true
     },
+    // The helpers:pinGitHubActionDigestsToSemver resp. helpers:pinGitHubActionDigests does not specify a groupName, adding this now explicitly
+    {
+      "description": "Resolve and pin to commit digests for Github Actions version tag based references",
+      "matchDepTypes": [
+        "action"
+      ],
+      "groupName": "gha-pin-digests",
+      "pinDigests": true,
+    },
+    
     {
       "description": "Minor and patch updates for third-party GitHub Actions — 3-day minimum release age to allow time for retracted releases",
       "matchManagers": [
@@ -125,7 +135,7 @@
         "!/^etas.+/"
       ],
       "minimumReleaseAge": "3 days",
-      "groupName": "github-actions-minor-patch-update",
+      "groupName": "gha-3rd-party-minor-patch-update-min-age",
     },
     {
       "description": "Minor and patch updates for ETAS GitHub Actions — no minimum release age required",
@@ -141,7 +151,7 @@
       "matchPackageNames": [
         "/^etas.+/"
       ],
-      "groupName": "github-actions-minor-patch-update"
+      "groupName": "gha-etas-minor-patch-update"
     },
     {
       "description": "Disable Docker image updates referenced from GitHub workflows",
