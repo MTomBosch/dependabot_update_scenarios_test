@@ -206,11 +206,11 @@ parse_args() {
   done
 
   if [[ -n "$ACTION_WORKFLOW_FILES" && "$NOTES_FROM_TAG" == "true" ]]; then
-    echo "ERROR: --files and --notes-from-tag are mutually exclusive."
+    echo "ERROR: --files ('${ACTION_WORKFLOW_FILES}') and --notes-from-tag are mutually exclusive."
     exit $EXIT_USAGE
   fi
   if [[ -n "$PREVIOUS_RELEASE" && "$NOTES_FROM_TAG" == "true" ]]; then
-    echo "ERROR: --previous-release and --notes-from-tag are mutually exclusive."
+    echo "ERROR: --previous-release ('${PREVIOUS_RELEASE}') and --notes-from-tag are mutually exclusive."
     exit $EXIT_USAGE
   fi
   if [[ "$INCLUDE_MERGE_COMMITS" == "true" && "$NOTES_FROM_TAG" == "true" ]]; then
