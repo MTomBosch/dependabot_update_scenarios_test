@@ -50,7 +50,7 @@ runs:
       if: ${{ false }}
       # expected_behavior: update tag to dummy-composite/v1.0.1 or next minor version if it exists
       # Repo has multiple tags (for the dummy action and dummy workflow)
-      uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@150be11f8e18450c38116b01268b2b7119b87931 # dummy-composite/v1.0.0
+      uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@77c41462ef96a706184221d86f87bdea2f0eba98 # dummy-composite/v1.0.0
 
     - name: Action reference via commit with multi path version comment 2
       if: ${{ false }}
