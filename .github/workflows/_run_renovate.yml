@@ -75,6 +75,13 @@ name: Run Renovate for Organisation (reusable)
         required: false
         default: "43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
         type: string
+      renovate_log_level:
+        description: "Renovate log level (e.g. debug, info, warn, error)"
+          # Overrides the default log level used by run_renovate.sh.
+          # Leave empty to use the script default (info, or debug for local/dry-run modes).
+        required: false
+        default: ""
+        type: string
 
 jobs:
   run-renovate:
@@ -111,6 +118,7 @@ jobs:
           fi
           ARGS+=(--version "${{ inputs.renovate_version }}")
           [[ "${{ inputs.dry_run }}"  == "true" ]] && ARGS+=(--dry-run full)
+          [[ -n "${{ inputs.renovate_log_level }}" ]] && ARGS+=(--log-level "${{ inputs.renovate_log_level }}")
           [[ -n "${{ inputs.renovate_config }}" ]] && ARGS+=(--config "${{ inputs.renovate_config }}")
 
           ./run_renovate.sh "${ARGS[@]}"

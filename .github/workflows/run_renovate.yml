@@ -75,6 +75,13 @@ name: Run Renovate
         required: false
         default: "43.226.1@sha256:1cc254d0011cf490e802d37ea637de5aafa83448c8c18d783658d22ba82c76b1"
         type: string
+      renovate_log_level:
+        description: "Renovate log level (e.g. debug, info, warn, error)"
+          # Overrides the default log level used by run_renovate.sh.
+          # Leave empty to use the script default (info, or debug for local/dry-run modes).
+        required: false
+        default: ""
+        type: string
 
 jobs:
   run-renovate:
@@ -89,3 +96,4 @@ jobs:
       upload_logs: ${{ inputs.upload_logs }}
       renovate_config: ${{ inputs.renovate_config }}
       renovate_version: ${{ inputs.renovate_version }}
+      renovate_log_level: ${{ inputs.renovate_log_level }}
