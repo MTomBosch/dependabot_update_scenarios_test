@@ -1,6 +1,6 @@
 name: Create GHA Release
 
-"on":
+on:
   workflow_dispatch:
     inputs:
       action_workflow_files:
