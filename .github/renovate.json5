@@ -108,7 +108,8 @@
         "custom.regex"
       ],
       "groupName": "gha-pin-digests",
-      "pinDigests": true
+      "pinDigests": true,
+      "enabled": true
     },
     // The helpers:pinGitHubActionDigestsToSemver resp. helpers:pinGitHubActionDigests does not specify a groupName, adding this now explicitly
     {
@@ -137,6 +138,7 @@
       ],
       "minimumReleaseAge": "3 days",
       "groupName": "gha-3rd-party-minor-patch-update-min-age",
+      "enabled": true
     },
     {
       "description": "Minor and patch updates for ETAS GitHub Actions — no minimum release age required",
@@ -153,7 +155,8 @@
       "matchPackageNames": [
         "/^etas.+/"
       ],
-      "groupName": "gha-etas-minor-patch-update"
+      "groupName": "gha-etas-minor-patch-update",
+      "enabled": true
     },
     {
       "description": "Disable Docker image updates referenced from GitHub workflows",
