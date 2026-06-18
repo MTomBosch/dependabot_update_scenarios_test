@@ -11,6 +11,7 @@ readonly EXIT_PREVIOUS_TAG_NOT_FOUND=8 # --previous-release tag does not exist
 readonly EXIT_CREATE_TAG_FAILED=9      # failed to create the release tag
 readonly EXIT_CREATE_RELEASE_FAILED=10 # failed to create the GitHub release
 readonly EXIT_RELEASE_EXISTS=11        # GitHub release already exists
+readonly EXIT_EMPTY_RELEASE_NOTES=12   # no matching commits found for release notes
 
 # ---------------------------------------------------------------------------
 # Globals (populated by parse_args)
@@ -304,14 +305,17 @@ log_debug_commits() {
 }
 
 collect_release_notes() {
-  echo "::group::Collect release notes"
+  echo "::group::Generate release notes"
   local repo_url
   repo_url="$(GH_TOKEN="$GITHUB_TOKEN" gh repo view --json url --jq '.url')"
   RELEASE_NOTES="$(git log --format="- [%h](${repo_url}/commit/%H) %s" "${MERGE_ARGS[@]}" "${RANGE_ARGS[@]}" -- "${PATTERNS[@]}")"
 
   if [[ -z "$RELEASE_NOTES" ]]; then
-    RELEASE_NOTES="No matching changes found."
+    echo "ERROR: No matching commits found for the specified file patterns and commit range. Release notes would be empty."
+    _log_gha_endgroup
+    exit $EXIT_EMPTY_RELEASE_NOTES
   fi
+  echo "Release notes successfully generated."
   _log_gha_endgroup
 }
 
@@ -407,20 +411,17 @@ publish_release() {
 }
 
 # ---------------------------------------------------------------------------
-# Main
+# Main execution logic
 # ---------------------------------------------------------------------------
 
-main() {
-  validate_prerequisites
-  parse_args "$@"
-  detect_branch
-  resolve_file_patterns
-  check_next_release_tag
-  build_git_log_args
-  log_debug_commits
-  collect_release_notes
-  ensure_tag
-  publish_release
-}
-
-main "$@"
+echo "Call: $(printf '%q ' "$0" "$@")"
+validate_prerequisites
+parse_args "$@"
+detect_branch
+resolve_file_patterns
+check_next_release_tag
+build_git_log_args
+log_debug_commits
+collect_release_notes
+ensure_tag
+publish_release
