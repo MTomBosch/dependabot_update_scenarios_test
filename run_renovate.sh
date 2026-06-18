@@ -28,6 +28,7 @@ readonly EXIT_NO_GH=5          # gh CLI not found
 readonly EXIT_NO_JQ=6          # jq not found
 readonly EXIT_NO_CONFIG=7      # config file not found
 readonly EXIT_RENOVATE_FAILED=8 # one or more Renovate runs failed
+readonly EXIT_RENOVATE_403=9   # Renovate received HTTP 403 Forbidden
 
 # ─── Usage ───────────────────────────────────────────────────────────────────
 usage() {
@@ -301,15 +302,29 @@ pull_renovate_image() {
 
 # ─── Output helper ────────────────────────────────────────────────────────────
 # Run a command, optionally teeing combined stdout+stderr to a log file.
+# Exits with EXIT_RENOVATE_403 if output contains an HTTP 403 error.
 # Usage: _run_and_log <log-file-or-empty> <command> [args...]
 _run_and_log() {
   local log="$1"; shift
+  local tmp_log exit_code
+  tmp_log=$(mktemp)
+
   if [[ -n "$log" ]]; then
-    "$@" 2>&1 | tee "$log"
-    return "${PIPESTATUS[0]}"
+    "$@" 2>&1 | tee "$log" "$tmp_log"
+    exit_code="${PIPESTATUS[0]}"
   else
-    "$@"
+    "$@" 2>&1 | tee "$tmp_log"
+    exit_code="${PIPESTATUS[0]}"
   fi
+
+  if grep -qF "Request failed with status code 403" "$tmp_log"; then
+    rm -f "$tmp_log"
+    echo "ERROR: Renovate received HTTP 403 Forbidden. Verify that RENOVATE_GITHUB_COM_TOKEN is valid, has not expired, and has the required permissions." >&2
+    exit $EXIT_RENOVATE_403
+  fi
+
+  rm -f "$tmp_log"
+  return "$exit_code"
 }
 
 # ─── Mode: local ─────────────────────────────────────────────────────────────
