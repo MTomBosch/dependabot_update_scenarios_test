@@ -2,16 +2,17 @@
 set -euo pipefail
 
 # ─── Exit codes ──────────────────────────────────────────────────────────────
-readonly EXIT_USAGE=2                  # bad / missing argument
-readonly EXIT_NO_TOKEN=3               # GITHUB_TOKEN not set
-readonly EXIT_NO_GIT=4                 # git not found
-readonly EXIT_NO_GH=5                  # gh CLI not found
-readonly EXIT_NO_BRANCH=7              # cannot determine current branch
-readonly EXIT_PREVIOUS_TAG_NOT_FOUND=8 # --previous-release tag does not exist
-readonly EXIT_CREATE_TAG_FAILED=9      # failed to create the release tag
-readonly EXIT_CREATE_RELEASE_FAILED=10 # failed to create the GitHub release
-readonly EXIT_RELEASE_EXISTS=11        # GitHub release already exists
-readonly EXIT_EMPTY_RELEASE_NOTES=12   # no matching commits found for release notes
+readonly EXIT_USAGE=2                       # bad / missing argument
+readonly EXIT_NO_TOKEN=3                    # GITHUB_TOKEN not set
+readonly EXIT_NO_GIT=4                      # git not found
+readonly EXIT_NO_GH=5                       # gh CLI not found
+readonly EXIT_NO_BRANCH=7                   # cannot determine current branch
+readonly EXIT_PREVIOUS_TAG_NOT_FOUND=8      # --previous-release tag does not exist
+readonly EXIT_CREATE_TAG_FAILED=9           # failed to create the release tag
+readonly EXIT_CREATE_RELEASE_FAILED=10      # failed to create the GitHub release
+readonly EXIT_RELEASE_EXISTS=11             # GitHub release already exists
+readonly EXIT_EMPTY_RELEASE_NOTES=12        # no matching commits found for release notes
+readonly EXIT_NEXT_RELEASE_TAG_NOT_FOUND=13 # --notes-from-tag: NEXT_RELEASE tag does not exist
 
 # ---------------------------------------------------------------------------
 # Globals (populated by parse_args)
@@ -23,11 +24,10 @@ INCLUDE_MERGE_COMMITS="false"
 DRY_RUN="false"
 DRAFT="false"
 BRANCH_OVERRIDE=""
+NOTES_FROM_TAG="false"
 
 # Populated by subsequent functions
 CURRENT_BRANCH=""
-NEXT_RELEASE_TAG_EXISTS="false"
-NEXT_RELEASE_EXISTS="false"
 PATTERNS=()
 RANGE_ARGS=()
 MERGE_ARGS=()
@@ -44,37 +44,42 @@ previous release.
 
 Usage:
   create_gha_release.sh \
-    --files <patterns>          \
-    --next-release <tag>        \
-    [--previous-release <tag>]  \
-    [--include-merge-commits]   \
-    [--dry-run]                 \
-    [--draft]                   \
+    --next-release <tag>                              \
+    { --files <patterns> | --notes-from-tag }         \
+    [--previous-release <tag>]                        \
+    [--include-merge-commits]                         \
+    [--dry-run]                                       \
+    [--draft]                                         \
     [--branch <name>]
 
 Arguments:
   --files <patterns>
-      Required. Comma- or newline-separated glob patterns (git pathspecs) for
-      the files whose commit history should be included in the release notes.
+      Required unless --notes-from-tag is used. Mutually exclusive with
+      --notes-from-tag. Comma- or newline-separated glob patterns (git
+      pathspecs) for the files whose commit history should be included in the
+      release notes.
       Examples:  .github/workflows/*.yml
                  ".github/workflows/*.yml,.github/actions/**"
       Note: glob wildcards are handled natively by git. POSIX regular
       expressions are NOT supported.
 
   --next-release <tag>
-      Required. The git tag and GitHub release name to create. The tag is
-      applied to the current HEAD commit of the repository.
+      Required. The git tag and GitHub release name to create. When used with
+      --notes-from-tag, the tag must already exist as an annotated git tag.
+      Otherwise the tag is applied to the current HEAD commit.
 
   --previous-release <tag>
       Optional. Git tag marking the start of the commit range (exclusive).
       Commits from this tag up to HEAD are examined. Leave unset to examine
       all commits reachable from HEAD. If the tag does not exist git will
       abort with an error.
+      Shall not be set if --notes-from-tag is used.
 
   --include-merge-commits
       Optional flag. When present, merge commits are included in the release
       notes. When absent (default), merge commits are excluded (--no-merges
       is passed to git log).
+      Shall not be set if --notes-from-tag is used.
 
   --dry-run
       Optional flag. When present, behaves as if the current branch is not
@@ -90,6 +95,12 @@ Arguments:
       create the release (only happens on "main"). When omitted the current
       branch is detected automatically via git.
 
+  --notes-from-tag
+      Optional flag. When present, release notes are taken from the annotated
+      git tag message of --next-release instead of being generated from commit
+      history. The tag must already exist as an annotated git tag. Mutually
+      exclusive with --files, --previous-release, and --include-merge-commits.
+
   -h, --help  Show this help
 
 Environment variables:
@@ -104,6 +115,9 @@ Examples:
 
   # Create new major release for one action
   GITHUB_TOKEN=*** ./create_gha_release.sh --files .github/actions/dummy-composite --previous-release dummy-composite/v1.2.0 --next-release dummy-composite/v2.0.0
+
+  # Create a release using the annotated tag's message as release notes
+  GITHUB_TOKEN=*** ./create_gha_release.sh --notes-from-tag --next-release v2.0.0
 EOF
   exit 0
 }
@@ -177,6 +191,10 @@ parse_args() {
         BRANCH_OVERRIDE="$2"
         shift 2
         ;;
+      --notes-from-tag)
+        NOTES_FROM_TAG="true"
+        shift
+        ;;
       -h|--help)
         usage
         ;;
@@ -187,8 +205,20 @@ parse_args() {
     esac
   done
 
-  if [[ -z "$ACTION_WORKFLOW_FILES" ]]; then
-    echo "ERROR: --files is required."
+  if [[ -n "$ACTION_WORKFLOW_FILES" && "$NOTES_FROM_TAG" == "true" ]]; then
+    echo "ERROR: --files and --notes-from-tag are mutually exclusive."
+    exit $EXIT_USAGE
+  fi
+  if [[ -n "$PREVIOUS_RELEASE" && "$NOTES_FROM_TAG" == "true" ]]; then
+    echo "ERROR: --previous-release and --notes-from-tag are mutually exclusive."
+    exit $EXIT_USAGE
+  fi
+  if [[ "$INCLUDE_MERGE_COMMITS" == "true" && "$NOTES_FROM_TAG" == "true" ]]; then
+    echo "ERROR: --include-merge-commits and --notes-from-tag are mutually exclusive."
+    exit $EXIT_USAGE
+  fi
+  if [[ -z "$ACTION_WORKFLOW_FILES" && "$NOTES_FROM_TAG" != "true" ]]; then
+    echo "ERROR: --files is required (or use --notes-from-tag to take notes from the tag annotation)."
     exit $EXIT_USAGE
   fi
   if [[ -z "$NEXT_RELEASE" ]]; then
@@ -245,7 +275,7 @@ resolve_file_patterns() {
 build_git_log_args() {
   echo "::group::Build git log arguments"
   local upper_bound="HEAD"
-  if [[ "$NEXT_RELEASE_TAG_EXISTS" == "true" ]]; then
+  if git rev-parse --verify "refs/tags/${NEXT_RELEASE}" >/dev/null 2>&1; then
     upper_bound="$NEXT_RELEASE"
     echo "Tag '${NEXT_RELEASE}' already exists — using it as upper bound instead of HEAD."
   fi
@@ -305,7 +335,7 @@ log_debug_commits() {
 }
 
 collect_release_notes() {
-  echo "::group::Generate release notes"
+  echo "::group::Collect commits for release notes"
   local repo_url
   repo_url="$(GH_TOKEN="$GITHUB_TOKEN" gh repo view --json url --jq '.url')"
   RELEASE_NOTES="$(git log --format="- [%h](${repo_url}/commit/%H) %s" "${MERGE_ARGS[@]}" "${RANGE_ARGS[@]}" -- "${PATTERNS[@]}")"
@@ -319,34 +349,41 @@ collect_release_notes() {
   _log_gha_endgroup
 }
 
+verify_tag_for_notes() {
+  echo "::group::Verify tag for release notes"
+  if ! git rev-parse --verify "refs/tags/${NEXT_RELEASE}" >/dev/null 2>&1; then
+    echo "ERROR: Tag '${NEXT_RELEASE}' does not exist. With --notes-from-tag the tag must already exist as an annotated git tag."
+    _log_gha_endgroup
+    exit $EXIT_NEXT_RELEASE_TAG_NOT_FOUND
+  fi
+  echo "Tag '${NEXT_RELEASE}' exists."
+  echo ""
+  echo "Tag annotation:"
+  git show --no-patch "${NEXT_RELEASE}"
+  _log_gha_endgroup
+}
+
 check_next_release_tag() {
   echo "::group::Check next release tag and release"
-  if GH_TOKEN="$GITHUB_TOKEN" gh api "repos/{owner}/{repo}/git/ref/tags/${NEXT_RELEASE}" \
-       --silent 2>/dev/null; then
-    NEXT_RELEASE_TAG_EXISTS="true"
-    echo "Tag '${NEXT_RELEASE}' already exists."
-  else
-    NEXT_RELEASE_TAG_EXISTS="false"
-    echo "Tag '${NEXT_RELEASE}' does not exist yet."
-  fi
   if GH_TOKEN="$GITHUB_TOKEN" gh release view "${NEXT_RELEASE}" \
        --json tagName --jq '.tagName' >/dev/null 2>/dev/null; then
-    NEXT_RELEASE_EXISTS="true"
-    echo "GitHub release '${NEXT_RELEASE}' already exists."
+    echo "ERROR: GitHub release '${NEXT_RELEASE}' already exists — aborting."
+    _log_gha_endgroup
+    exit $EXIT_RELEASE_EXISTS
   else
-    NEXT_RELEASE_EXISTS="false"
     echo "GitHub release '${NEXT_RELEASE}' does not exist yet."
   fi
   _log_gha_endgroup
 }
 
-ensure_tag() {
+ensure_tag_exists() {
   echo "::group::Ensure tag"
   local tag="$NEXT_RELEASE"
   local head_sha
   head_sha="$(git rev-parse HEAD)"
 
-  if [[ "$NEXT_RELEASE_TAG_EXISTS" == "true" ]]; then
+  if GH_TOKEN="$GITHUB_TOKEN" gh api "repos/{owner}/{repo}/git/ref/tags/${tag}" \
+       --silent 2>/dev/null; then
     echo "Tag '${tag}' already exists — skipping tag creation."
   elif [[ "$CURRENT_BRANCH" != "main" || "$DRY_RUN" == "true" ]]; then
     echo "Tag '${tag}' does not exist — dry run; skipping tag creation."
@@ -372,23 +409,28 @@ publish_release() {
   if [[ "$CURRENT_BRANCH" == "main" && "$DRY_RUN" != "true" ]]; then
     echo "On main branch — creating GitHub release '${NEXT_RELEASE}' at ${head_sha}."
     echo ""
-    echo "Release notes:"
-    echo ""
-    echo "${RELEASE_NOTES}"
-    echo ""
-    if [[ "$NEXT_RELEASE_EXISTS" == "true" ]]; then
-      echo "ERROR: GitHub release '${NEXT_RELEASE}' already exists — aborting."
-      _log_gha_endgroup
-      exit $EXIT_RELEASE_EXISTS
+    if [[ "$NOTES_FROM_TAG" == "true" ]]; then
+      echo "Release notes will be taken from the tag annotation of '${NEXT_RELEASE}'."
+    else
+      echo "Release notes:"
+      echo ""
+      echo "${RELEASE_NOTES}"
     fi
+    echo ""
     local draft_flag=()
     if [[ "$DRAFT" == "true" ]]; then
       draft_flag=(--draft)
       echo "Draft mode enabled — Only draft release will be created, but not published."
     fi
+    local notes_flag=()
+    if [[ "$NOTES_FROM_TAG" == "true" ]]; then
+      notes_flag=(--notes-from-tag)
+    else
+      notes_flag=(--notes "$RELEASE_NOTES")
+    fi
     if ! GH_TOKEN="$GITHUB_TOKEN" gh release create "$NEXT_RELEASE" \
       --title "$NEXT_RELEASE" \
-      --notes "$RELEASE_NOTES" \
+      "${notes_flag[@]}" \
       --target "$head_sha" \
       "${draft_flag[@]}"; then
       echo "ERROR: Failed to create GitHub release '${NEXT_RELEASE}'."
@@ -404,8 +446,12 @@ publish_release() {
     echo ""
     echo "Release that would be created: ${NEXT_RELEASE}"
     echo ""
-    echo "Release notes:"
-    echo "${RELEASE_NOTES}"
+    if [[ "$NOTES_FROM_TAG" == "true" ]]; then
+      echo "Release notes: taken from tag annotation of '${NEXT_RELEASE}' (see tag annotation printed above)."
+    else
+      echo "Release notes:"
+      echo "${RELEASE_NOTES}"
+    fi
   fi
   _log_gha_endgroup
 }
@@ -413,15 +459,27 @@ publish_release() {
 # ---------------------------------------------------------------------------
 # Main execution logic
 # ---------------------------------------------------------------------------
-
+echo "========================================================================"
+echo "                            STARTING"
+echo "========================================================================"
 echo "Call: $(printf '%q ' "$0" "$@")"
 validate_prerequisites
 parse_args "$@"
 detect_branch
-resolve_file_patterns
+if [[ "$NOTES_FROM_TAG" == "true" ]]; then
+  verify_tag_for_notes
+else
+  resolve_file_patterns
+fi
 check_next_release_tag
-build_git_log_args
-log_debug_commits
-collect_release_notes
-ensure_tag
+if [[ "$NOTES_FROM_TAG" != "true" ]]; then
+  build_git_log_args
+  log_debug_commits
+  collect_release_notes
+fi
+ensure_tag_exists
 publish_release
+
+echo "========================================================================"
+echo "                            FINISHED"
+echo "========================================================================"

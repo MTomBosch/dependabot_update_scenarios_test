@@ -4,14 +4,15 @@ name: Create GHA Release (reusable)
   workflow_call:
     inputs:
       action_workflow_files:
-        description: Files whose changes shall be included in the release notes. Defined by glob patterns (git pathspecs) for the files
+        description: Files whose changes shall be included in the release notes. Defined by glob patterns (git pathspecs) for the files. Required unless notes_from_tag is set.
         #   Newline- or comma-separated glob patterns (git pathspecs) for the files
         #   whose commit history should be included in the release notes.
         #   Examples: .github/workflows/*.yml
         #             .github/workflows/*.yml,.github/actions/**
         #   Note: glob wildcards are supported natively by git (e.g. *.yml,
         #   .github/**/*.yml). POSIX regular expressions are NOT supported.
-        required: true
+        required: false
+        default: ""
         type: string
       previous_release:
         description: Git tag of previous release, empty to create very first release
@@ -45,6 +46,11 @@ name: Create GHA Release (reusable)
         required: false
         default: false
         type: boolean
+      notes_from_tag:
+        description: "Take release notes from the annotated tag message of next_release instead of generating them from commit history. The tag must already exist. Mutually exclusive with action_workflow_files."
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   create-release:
@@ -67,15 +73,17 @@ jobs:
           INCLUDE_MERGE_COMMITS: ${{ inputs.include_merge_commits }}
           DRY_RUN:               ${{ inputs.dry_run }}
           DRAFT:                 ${{ inputs.draft }}
+          NOTES_FROM_TAG:        ${{ inputs.notes_from_tag }}
         run: |
           ARGS=(
-            --files          "$ACTION_WORKFLOW_FILES"
             --next-release   "$NEXT_RELEASE"
             --branch         "$GITHUB_REF_NAME"
           )
+          [[ -n "$ACTION_WORKFLOW_FILES"           ]] && ARGS+=(--files "$ACTION_WORKFLOW_FILES")
           [[ -n "$PREVIOUS_RELEASE"                ]] && ARGS+=(--previous-release "$PREVIOUS_RELEASE")
           [[ "$INCLUDE_MERGE_COMMITS" == "true"    ]] && ARGS+=(--include-merge-commits)
           [[ "$DRY_RUN" == "true"                  ]] && ARGS+=(--dry-run)
           [[ "$DRAFT" == "true"                    ]] && ARGS+=(--draft)
+          [[ "$NOTES_FROM_TAG" == "true"           ]] && ARGS+=(--notes-from-tag)
 
           ./create_gha_release.sh "${ARGS[@]}"
