@@ -164,9 +164,10 @@
       "enabled": false
     },
     {
-      "description": "Allow only compatible (minor/patch) GitHub Actions updates by default",
+      "description": "Allow only compatible (minor/patch) updates by default",
       "matchManagers": [
-        "github-actions"
+        "github-actions",
+        "custom.regex"
       ],
       "matchUpdateTypes": [
         "major"
