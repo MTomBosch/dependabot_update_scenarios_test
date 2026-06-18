@@ -120,15 +120,21 @@
       "pinDigests": true,
       "enabled": true
     },
-    // The helpers:pinGitHubActionDigestsToSemver resp. helpers:pinGitHubActionDigests does not specify a groupName, adding this now explicitly
-    {
-      "description": "Resolve and pin to commit digests for Github Actions version tag based references",
-      "matchDepTypes": [
-        "action"
-      ],
-      "groupName": "gha-pin-digests",
-      "pinDigests": true,
-    },
+
+
+
+    // // The helpers:pinGitHubActionDigestsToSemver resp. helpers:pinGitHubActionDigests does not specify a groupName, adding this now explicitly
+    // {
+    //   "description": "Resolve and pin to commit digests for Github Actions version tag based references",
+    //   "matchDepTypes": [
+    //     "action"
+    //   ],
+    //   "groupName": "gha-pin-digests",
+    //   "pinDigests": true,
+    // },
+
+    
+
     
     {
       "description": "Minor and patch updates for third-party GitHub Actions — 3-day minimum release age to allow time for retracted releases",
