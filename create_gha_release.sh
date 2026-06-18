@@ -388,15 +388,26 @@ ensure_tag_exists() {
   elif [[ "$CURRENT_BRANCH" != "main" || "$DRY_RUN" == "true" ]]; then
     echo "Tag '${tag}' does not exist — dry run; skipping tag creation."
   else
-    echo "Tag '${tag}' does not exist — creating and pushing tag at ${head_sha}."
+    echo "Tag '${tag}' does not exist — creating annotated tag at ${head_sha}."
+    local tag_sha
+    if ! tag_sha="$(GH_TOKEN="$GITHUB_TOKEN" gh api "repos/{owner}/{repo}/git/tags" \
+      --method POST \
+      --field "tag=${tag}" \
+      --field "message=${RELEASE_NOTES}" \
+      --field "object=${head_sha}" \
+      --field "type=commit" \
+      --jq '.sha')"; then
+      echo "ERROR: Failed to create tag object for '${tag}'."
+      exit $EXIT_CREATE_TAG_FAILED
+    fi
     if ! GH_TOKEN="$GITHUB_TOKEN" gh api "repos/{owner}/{repo}/git/refs" \
       --method POST \
       --field "ref=refs/tags/${tag}" \
-      --field "sha=${head_sha}"; then
-      echo "ERROR: Failed to create tag '${tag}'."
+      --field "sha=${tag_sha}"; then
+      echo "ERROR: Failed to create tag ref for '${tag}'."
       exit $EXIT_CREATE_TAG_FAILED
     fi
-    echo "Tag '${tag}' created at ${head_sha}."
+    echo "Annotated tag '${tag}' created at ${head_sha}."
   fi
   _log_gha_endgroup
 }
