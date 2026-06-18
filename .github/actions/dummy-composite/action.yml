@@ -6,7 +6,7 @@ runs:
   steps:
     - name: Print hello from composite action
       shell: bash
-      run: echo "hello world from action!"
+      run: echo "hello world!"
 
     - name: Action reference via semver tag (intentionally old for dependabot updates)
       if: ${{ false }}
