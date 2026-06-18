@@ -91,13 +91,22 @@
   ],
   "packageRules": [
     {
+
+
+
       // Disable the native github-actions manager for path-prefixed tags so they are not extracted and reported as unparseable
-      "description": "Disable native github-actions parsing for path-prefixed tags",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchCurrentValue": "/^[^/\\s]+\\/\\S+$/",
-      "enabled": false
+      // "description": "Disable native github-actions parsing for path-prefixed tags",
+      // "matchManagers": [
+      //   "github-actions"
+      // ],
+      // "matchCurrentValue": "/^[^/\\s]+\\/\\S+$/",
+      // "enabled": false
+
+
+
+
+
+
     },
     {
       // For the tag-as-ref custom manager (which has no currentDigest in its matchString),
