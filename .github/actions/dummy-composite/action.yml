@@ -4,7 +4,7 @@ description: A dummy composite action that prints hello world.
 runs:
   using: composite
   steps:
-    - name: Print hello from composite action
+    - name: Print hello
       shell: bash
       run: echo "hello world!"
 
