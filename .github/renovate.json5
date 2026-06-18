@@ -29,6 +29,7 @@
 
   // Limit PRs to 5 at a time, to avoid overwhelming maintainers
   prConcurrentLimit: 5,
+  prHourlyLimit: 5,
 
   // Override default weekly schedule from config:recommended so Renovate
   // runs every time the workflow triggers.
