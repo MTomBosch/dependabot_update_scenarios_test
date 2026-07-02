@@ -237,24 +237,34 @@
       "matchCurrentValue": "/^v?\\d+(?:\\.\\d+){0,2}$/",
       "enabled": false
     },
-    // TODO XXX What about this commented part?
-    // {
-    //   // Create one PR per updated github-actions dependency for digest-like
-    //   // updates and keep the digest visible in the resulting PR title.
-    //   "description": "Create per-dependency digest PRs for github-actions and include workflow/action context plus digest in branch/topic metadata where available.",
-    //   "matchManagers": [
-    //     "github-actions",
-    //     "custom.regex"
-    //   ],
-    //   "matchUpdateTypes": [
-    //     "digest",
-    //     "pinDigest"
-    //   ],
-    //   "groupName": null,
-    //   "branchTopic": "{{{depNameSanitized}}}-{{{packageFile}}}-to-{{{newDigest}}}",
-    //   "commitMessageTopic": "{{{depName}}} digest",
-    //   "commitMessageExtra": "to {{{newDigestShort}}}"
-    // },
+    {
+      "description": "Create per-dependency branch commit pinning PRs.",
+      "matchManagers": [
+        "github-actions",
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "groupName": null,
+      "branchTopic": "{{{depNameSanitized}}}-pin-to-{{{newDigest}}}",
+      "commitMessageTopic": "{{{depName}}} digest",
+      "commitMessageExtra": "to {{{newDigest}}}"
+    },
+    {
+      "description": "Create per-dependency branch based digest update PRs.",
+      "matchManagers": [
+        "github-actions",
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "groupName": null,
+      "branchTopic": "{{{depNameSanitized}}}-branch-digest-update-to-{{{newDigest}}}",
+      "commitMessageTopic": "{{{depName}}} digest",
+      "commitMessageExtra": "to {{{newDigest}}}"
+    },
     {
       "description": "Block major updates for github-actions and custom.regex so only compatible minor and patch updates are proposed.",
       "matchManagers": [
