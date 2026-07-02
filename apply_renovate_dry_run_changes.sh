@@ -56,7 +56,8 @@ awk '
   }
 
   {
-    if (match($0, /DRY-RUN: Would commit files to branch ([^ .]+)\./, m)) {
+    if (match($0, /DRY-RUN: Would commit files to branch ([^ ]+)\. See debug logs/, m) ||
+        match($0, /DRY-RUN: Would commit files to branch ([^ ]+) \(repository=/, m)) {
       current_branch = m[1]
       path = ""
       has_content_marker = 0
@@ -103,6 +104,7 @@ while IFS=$'\t' read -r branch path raw_contents; do
   [[ -n "${branch}" && -n "${path}" ]] || continue
 
   safe_branch="${branch//\//_}"
+  safe_branch="${safe_branch//./_}"
   pr_dir="${SCRIPT_DIR}/PR_${safe_branch}"
   target_file="${pr_dir}/${path}"
   patch_file="${target_file}.patch"
