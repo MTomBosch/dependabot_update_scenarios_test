@@ -13,7 +13,7 @@ runs:
       # expected_behavior: replace tag by commit sha that the tag points to
       # The v3 tag is already the latest 3.x version since the latest tag v3.9.1 points to the same commit like v3
       # Commit for v3: 3235b876344d2a9aa001b8d1453c930bba69e610
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3.9.1
     - name: Action reference via commit with version comment
       if: ${{ false }}
       # expected_behavior: newest_semver_compatible_tag_commit
