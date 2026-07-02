@@ -78,7 +78,7 @@
       "packageNameTemplate": "{{{depName}}}",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
-      "autoReplaceStringTemplate": "uses: {{{depName}}}/{{{actionPath}}}@{{{newDigest}}} # {{{newValue}}}"
+      "autoReplaceStringTemplate": "uses: {{{depName}}}@{{{newDigest}}} # {{{newValue}}}"
     }
   ],
   "packageRules": [
