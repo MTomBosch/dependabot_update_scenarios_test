@@ -247,7 +247,7 @@
         "pinDigest"
       ],
       "groupName": null,
-      "branchTopic": "{{{depNameSanitized}}}-pin-{{{currentValue}}}-to-{{{newDigest}}}",
+      "branchTopic": "{{{depNameSanitized}}}__pin-{{{currentValue}}}-to__{{{newDigest}}}",
       "commitMessageTopic": "{{{depName}}} digest",
       "commitMessageExtra": "to {{{newDigest}}}"
     },
@@ -261,7 +261,7 @@
         "digest"
       ],
       "groupName": null,
-      "branchTopic": "{{{depNameSanitized}}}-branch-digest-update-to-{{{newDigest}}}",
+      "branchTopic": "{{{depNameSanitized}}}__{{{currentValue}}}-branch-digest-update-to__{{{newDigest}}}",
       "commitMessageTopic": "{{{depName}}} digest",
       "commitMessageExtra": "to {{{newDigest}}}"
     },
