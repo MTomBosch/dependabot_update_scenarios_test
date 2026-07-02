@@ -6,11 +6,11 @@
 # in the JSON output.
 #
 # Usage:
-#   ./test_renovate_updates.sh
+#   ./test_renovate_lookup.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="${SCRIPT_DIR}/renovate_test.log"
+LOG_FILE="${SCRIPT_DIR}/renovate_lookup_test.json.log"
 
 # ─── Step 1: Run Renovate ────────────────────────────────────────────────────
 echo "==> Running Renovate (--dry-run lookup, --log-format json)..."

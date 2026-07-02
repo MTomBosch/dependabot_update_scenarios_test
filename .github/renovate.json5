@@ -16,39 +16,32 @@
     "dependencies-update",
     "renovate"
   ],
-
   // Central config: each target repository does not need its own renovate.json.
   // Renovate will run on any repository it is pointed at without requiring onboarding.
   onboarding: false,
   requireConfig: "ignored",
-
   // Disable the dependency dashboard: avoids Renovate opening a tracking issue
   // in every target repository.
   // Needs to be disabled twice, see https://github.com/renovatebot/renovate/discussions/31221#discussioncomment-10551423
   dependencyDashboard: false,
-
-  // Limit PRs to 5 at a time, to avoid overwhelming maintainers
+  // Limit PRs to 5 at a time to avoid overwhelming maintainers.
   prConcurrentLimit: 5,
   prHourlyLimit: 0,
-
   // Avoid collisions with already-existing Renovate branches/PRs from other
   // base branches (important for dry-run scenario tests).
   additionalBranchPrefix: "{{baseBranch}}-",
-
   // Override default weekly schedule from config:recommended so Renovate
   // runs every time the workflow triggers.
   schedule: [
     "at any time"
   ],
-
-
   // Target repositories may use path-prefixed tags for in-repo composite actions and
   // reusable workflows (e.g. "dummy-workflow/v1.3.0", "dummy-composite/v1.2.0").
   // The native github-actions manager rejects these tags because its default semver
   // versioning cannot parse the path prefix, and packageRules.extractVersion does not
-  // apply at extraction time. Two generic custom regex managers below handle ALL
-  // path-prefixed self-references automatically — no per-action or per-workflow entries
-  // are needed. They capture the action/workflow path and the tag prefix dynamically
+  // apply at extraction time. The unified custom regex manager below handles all
+  // path-prefixed self-references automatically, so no per-action or per-workflow entries
+  // are needed. It captures the action/workflow path and the tag prefix dynamically
   // via named groups, so any new action or workflow using this convention is covered
   // without config changes.
   //
@@ -61,7 +54,9 @@
       //   1) pinned-digest: uses: owner/repo/<path>@<sha> # <prefix>/<version>
       //   2) tag-as-ref:    uses: owner/repo/<path>@<prefix>/<version>
       // Keeping both forms in one manager avoids cross-manager transformations
-      // where one replacement changes text into the other manager's pattern.
+      // where one replacement changes text into another manager's pattern.
+      // Goal: produce one consistent semver-compatible update stream for
+      // path-prefixed in-repo action/workflow references.
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
@@ -78,12 +73,14 @@
       "packageNameTemplate": "{{{depName}}}",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
+      // Render path-prefixed refs as uses: owner/repo/path@<sha> # <prefix>/vX.Y.Z.
+      // This preserves the prefix context while pinning to the resolved digest.
       "autoReplaceStringTemplate": "uses: {{{depName}}}@{{{newDigest}}} # {{{newValue}}}"
     }
   ],
   "packageRules": [
     {
-      "description": "Minor and patch updates for third-party GitHub Actions — 3-day minimum release age to allow time for retracted releases",
+      "description": "Allow minor and patch updates for non-ETAS GitHub Actions dependencies; release-age delay is intentionally disabled for the current test workflow.",
       "matchManagers": [
         "github-actions"
       ],
@@ -96,11 +93,11 @@
       "matchPackageNames": [
         "!/^etas.+/"
       ],
-      // skip release age for the time being, first get the overall update procedure properly set up
+      // Keep release age disabled until the update workflow is stabilized.
       //"minimumReleaseAge": "3 days",
     },
     {
-      "description": "Minor and patch updates for ETAS GitHub Actions — no minimum release age required",
+      "description": "Allow minor and patch updates for ETAS GitHub Actions dependencies without release-age gating.",
       "matchManagers": [
         "github-actions"
       ],
@@ -117,7 +114,7 @@
     {
       // Keep semver bump style updates and SHA pinning, but avoid standalone
       // digest-only refresh branches that keep a broad comment such as "# v4".
-      "description": "Disable digest-only updates for GitHub actions/workflows",
+      "description": "Disable digest-only updates across github-actions and custom.regex to avoid standalone digest refresh PRs.",
       "matchManagers": [
         "github-actions",
         "custom.regex"
@@ -128,10 +125,10 @@
       "enabled": false
     },
     {
-      // Ensure path-prefixed tag-as-ref entries are resolved and pinned by the
-      // custom.regex manager (e.g. @dummy-composite/v1.0.0 -> @<sha> # dummy-composite/v1.2.0).
-      // This targets only prefix-based tag refs and does not affect regular tags.
-      "description": "Resolve and pin commit digests for custom.regex path-prefixed tag-as-ref references",
+      // Ensure path-prefixed refs are resolved and pinned by the custom.regex
+      // manager (e.g. @dummy-composite/v1.0.0 -> @<sha> # dummy-composite/v1.2.0).
+      // This targets only prefix-based refs and does not affect regular tags.
+      "description": "For custom.regex path-prefixed tags, enable digest pinning so semver updates resolve to explicit commits.",
       "matchManagers": [
         "custom.regex"
       ],
@@ -139,8 +136,23 @@
       "pinDigests": true
     },
     {
+      // Avoid standalone pin-only translations for path-prefixed refs
+      // (e.g. @dummy-composite/v1.0.0 -> @<sha> # dummy-composite/v1.0.0).
+      // Keep semver minor/patch updates, which still include digest pinning
+      // to the newer compatible version.
+      "description": "Disable custom.regex pinDigest-only updates for path-prefixed refs to prevent duplicate tag-to-same-version commit translations.",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchCurrentValue": "/^[^/\\s]+\\/\\S+$/",
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "enabled": false
+    },
+    {
       // Do not pin tag-based refs in the generic pin-dependencies branch.
-      "description": "Disable pinDigest updates for github-actions by default",
+      "description": "Disable github-actions pinDigest updates by default to avoid broad pin-dependencies churn.",
       "matchManagers": [
         "github-actions"
       ],
@@ -151,7 +163,7 @@
     },
     {
       // Re-enable pinDigest only for explicit branch refs.
-      "description": "Allow pinDigest only for github-actions branch refs",
+      "description": "Allow github-actions pinDigest only for explicit branch refs (main/master/develop/development/dev/trunk).",
       "matchManagers": [
         "github-actions"
       ],
@@ -162,7 +174,7 @@
       "enabled": true
     },
     {
-      "description": "Allow only compatible (minor/patch) GitHub Actions updates by default",
+      "description": "Block major updates for github-actions and custom.regex so only compatible minor and patch updates are proposed.",
       "matchManagers": [
         "github-actions",
         "custom.regex"
@@ -173,8 +185,9 @@
       "enabled": false
     },
     {
-      // Disable the native github-actions manager for path-prefixed tags so they are not extracted and reported as unparseable
-      "description": "Disable native github-actions parsing for path-prefixed tags",
+      // Disable the native github-actions manager for path-prefixed tags so they
+      // are not extracted and reported as unparseable.
+      "description": "Disable native github-actions handling of path-prefixed tags so only custom.regex processes them.",
       "matchManagers": [
         "github-actions"
       ],
@@ -182,7 +195,7 @@
       "enabled": false
     },
     {
-      "description": "Disable Docker image updates referenced from GitHub workflows",
+      "description": "Disable Docker datasource updates in github-actions files to keep this configuration focused on action and workflow references.",
       "matchManagers": [
         "github-actions"
       ],
@@ -192,7 +205,7 @@
       "enabled": false
     },
     {
-      "description": "Disable GitHub runner updates",
+      "description": "Disable github-runners datasource updates to avoid runner-image churn in this scenario.",
       "matchManagers": [
         "github-actions"
       ],

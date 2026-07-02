@@ -1,1 +1,2 @@
-renovate*.log
+*.log
+PR_*/

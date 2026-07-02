@@ -285,7 +285,25 @@ build_docker_env() {
   if [[ -n "${HTTP_PROXY:-}"  ]]; then DOCKER_ENV+=( -e "HTTP_PROXY=${HTTP_PROXY}" );   fi
   if [[ -n "${https_proxy:-}" ]]; then DOCKER_ENV+=( -e "https_proxy=${https_proxy}" ); fi
   if [[ -n "${HTTPS_PROXY:-}" ]]; then DOCKER_ENV+=( -e "HTTPS_PROXY=${HTTPS_PROXY}" ); fi
-}
+
+  # Forward any externally set RENOVATE_* env vars not already handled above.
+  # RENOVATE_CONFIG_FILE, RENOVATE_GITHUB_COM_TOKEN, RENOVATE_TOKEN, and
+  # RENOVATE_DRY_RUN are managed explicitly by this script and are therefore
+  # excluded to prevent external values from silently overriding them.
+  local -A _handled_renovate_vars=(
+    [RENOVATE_CONFIG_FILE]=1
+    [RENOVATE_GITHUB_COM_TOKEN]=1
+    [RENOVATE_TOKEN]=1
+    [RENOVATE_DRY_RUN]=1
+  )
+  local _var_name _line
+  while IFS= read -r _line; do
+    _var_name="${_line%%=*}"
+    if [[ -z "${_handled_renovate_vars[$_var_name]+set}" ]]; then
+      DOCKER_ENV+=( -e "${_var_name}=${!_var_name}" )
+    fi
+  done < <(env | grep '^RENOVATE_')
+  }
 
 # ─── Image pull ──────────────────────────────────────────────────────────────
 pull_renovate_image() {
