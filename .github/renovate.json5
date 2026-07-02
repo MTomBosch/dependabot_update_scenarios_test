@@ -125,6 +125,41 @@
       "enabled": false
     },
     {
+      // Re-enable digest updates for branch-like github-actions refs in general.
+      // Exclusions for commit SHA and semver refs are applied by subsequent rules.
+      "description": "Allow github-actions digest updates for non-whitespace refs, then exclude commit SHA and semver refs in dedicated rules.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "matchCurrentValue": "/^\\S+$/",
+      "enabled": true
+    },
+    {
+      "description": "Disable github-actions digest updates when currentValue is a commit SHA.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "matchCurrentValue": "/^[0-9a-f]{40}$/",
+      "enabled": false
+    },
+    {
+      "description": "Disable github-actions digest updates when currentValue is semver-like.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "matchCurrentValue": "/^v?\\d+(?:\\.\\d+){0,2}$/",
+      "enabled": false
+    },
+    {
       // Ensure path-prefixed refs are resolved and pinned by the custom.regex
       // manager (e.g. @dummy-composite/v1.0.0 -> @<sha> # dummy-composite/v1.2.0).
       // This targets only prefix-based refs and does not affect regular tags.
@@ -162,16 +197,39 @@
       "enabled": false
     },
     {
-      // Re-enable pinDigest only for explicit branch refs.
-      "description": "Allow github-actions pinDigest only for explicit branch refs (main/master/develop/development/dev/trunk).",
+      // Re-enable pinDigest for branch-like github-actions refs in general.
+      // Exclusions for commit SHA and semver refs are applied by subsequent rules.
+      "description": "Allow github-actions pinDigest updates for non-whitespace refs, then exclude commit SHA and semver refs in dedicated rules.",
       "matchManagers": [
         "github-actions"
       ],
       "matchUpdateTypes": [
         "pinDigest"
       ],
-      "matchCurrentValue": "/^(main|master|develop|development|dev|trunk)$/",
+      "matchCurrentValue": "/^\\S+$/",
       "enabled": true
+    },
+    {
+      "description": "Disable github-actions pinDigest updates when currentValue is a commit SHA.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "matchCurrentValue": "/^[0-9a-f]{40}$/",
+      "enabled": false
+    },
+    {
+      "description": "Disable github-actions pinDigest updates when currentValue is semver-like.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "matchCurrentValue": "/^v?\\d+(?:\\.\\d+){0,2}$/",
+      "enabled": false
     },
     {
       "description": "Block major updates for github-actions and custom.regex so only compatible minor and patch updates are proposed.",
