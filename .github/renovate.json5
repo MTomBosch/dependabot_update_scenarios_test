@@ -247,7 +247,7 @@
         "pinDigest"
       ],
       "groupName": null,
-      "branchTopic": "{{{depNameSanitized}}}-pin-to-{{{newDigest}}}",
+      "branchTopic": "{{{depNameSanitized}}}-pin-{{{currentValue}}}-to-{{{newDigest}}}",
       "commitMessageTopic": "{{{depName}}} digest",
       "commitMessageExtra": "to {{{newDigest}}}"
     },
