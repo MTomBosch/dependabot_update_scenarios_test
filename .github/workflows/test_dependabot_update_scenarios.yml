@@ -52,7 +52,7 @@ jobs:
         # Intentionally disabled: this workflow is a static dependency fixture for dependabot updates.
         if: ${{ false }}
         # expected_behavior: latest_commit_on_branch
-        uses: actions/checkout@main
+        uses: actions/checkout@4f1f4aec02e41874fa0262ea8ff5172d7978ad1e # main
   dependabot-update-scenario-tests-steps-fixture-2:
     runs-on: ubuntu-latest
     steps:
@@ -125,7 +125,7 @@ jobs:
     if: ${{ false }}
     # Repo has no tags at all
     # expected_behavior: latest_commit_on_branch
-    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@main
+    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@09976383aa8780d306ee271bd21bb77a54fad474 # main
   workflow-reference-via-commit-fixture:
     if: ${{ false }}
     # expected_behavior: latest_commit_on_branch
@@ -136,7 +136,7 @@ jobs:
     if: ${{ false }}
     # expected_behavior: latest_commit_on_branch
     # Repo has some tags v0.0.0 and v0.0.1
-    uses: mtombosch/cicd-workflows/.github/workflows/bzlmod-lock-check.yml@main
+    uses: mtombosch/cicd-workflows/.github/workflows/bzlmod-lock-check.yml@af347722c7ae3ed85518895c11268d96ac728f62 # main
   workflow-reference-via-commit-with-multipath-version-fixture:
     if: ${{ false }}
     # expected_behavior: update tag to dummy-workflow/v1.3.0
