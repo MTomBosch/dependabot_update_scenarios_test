@@ -35,6 +35,12 @@
   schedule: [
     "at any time"
   ],
+  // Enable auto rebase for Renovate PRs to avoid merge conflicts and keep the PRs up to date.
+  rebaseWhen: "auto",
+  // Enable automerge globally for all update types unless overridden by package rules.
+  automerge: true,
+  automergeType: "pr",
+
   // Target repositories may use path-prefixed tags for in-repo composite actions and
   // reusable workflows (e.g. "dummy-workflow/v1.3.0", "dummy-composite/v1.2.0").
   // The native github-actions manager rejects these tags because its default semver
@@ -231,6 +237,24 @@
       "matchCurrentValue": "/^v?\\d+(?:\\.\\d+){0,2}$/",
       "enabled": false
     },
+    // TODO XXX What about this commented part?
+    // {
+    //   // Create one PR per updated github-actions dependency for digest-like
+    //   // updates and keep the digest visible in the resulting PR title.
+    //   "description": "Create per-dependency digest PRs for github-actions and include workflow/action context plus digest in branch/topic metadata where available.",
+    //   "matchManagers": [
+    //     "github-actions",
+    //     "custom.regex"
+    //   ],
+    //   "matchUpdateTypes": [
+    //     "digest",
+    //     "pinDigest"
+    //   ],
+    //   "groupName": null,
+    //   "branchTopic": "{{{depNameSanitized}}}-{{{packageFile}}}-to-{{{newDigest}}}",
+    //   "commitMessageTopic": "{{{depName}}} digest",
+    //   "commitMessageExtra": "to {{{newDigestShort}}}"
+    // },
     {
       "description": "Block major updates for github-actions and custom.regex so only compatible minor and patch updates are proposed.",
       "matchManagers": [
@@ -241,6 +265,22 @@
         "major"
       ],
       "enabled": false
+    },
+    {
+      // Example exception: allow major updates for a specific dependency
+      // even though majors are disabled globally above.
+      "description": "Allow major updates for specific actions and workflows.",
+      "matchManagers": [
+        "github-actions",
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "owner/my-example-action"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": true
     },
     {
       // Disable the native github-actions manager for path-prefixed tags so they
