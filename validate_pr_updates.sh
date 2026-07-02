@@ -66,14 +66,17 @@ validate_uses_ref_update() {
   local expected_updated_ref="$3"
   local expected_old
   local expected_new
+  local found_update
 
   expected_old="$(trim_leading_ws "uses: ${uses_path}@${previous_ref}")"
   expected_new="$(trim_leading_ws "uses: ${uses_path}@${expected_updated_ref}")"
+  found_update=0
   tests=$((tests + 1))
 
   for patch_file in "${PATCH_FILES[@]}"; do
     key="$patch_file|$expected_old"
     if [[ -n "${ACTUAL_NEW_BY_FILE_AND_OLD[$key]+x}" ]]; then
+      found_update=1
       actual_new="${ACTUAL_NEW_BY_FILE_AND_OLD[$key]}"
       if [[ "$actual_new" != "$expected_new" ]]; then
         echo "ERROR: Update pair mismatch"
@@ -85,6 +88,15 @@ validate_uses_ref_update() {
       fi
     fi
   done
+
+  if (( found_update == 0 )); then
+    echo "ERROR: Update pair mismatch"
+    echo "  file: <none>"
+    echo "  previous:         $expected_old"
+    echo "  expected_updated: $expected_new"
+    echo "  actual_updated:   NO UPDATE AT ALL"
+    failures=$((failures + 1))
+  fi
 }
 
 validate_no_uses_ref_update() {
@@ -117,6 +129,7 @@ validate_uses_ref_update "actions/checkout" "main" "4f1f4aec02e41874fa0262ea8ff5
 validate_uses_ref_update "actions/setup-node" "v3" "3235b876344d2a9aa001b8d1453c930bba69e610 # v3.9.1"
 validate_uses_ref_update "actions/reusable-workflows/.github/workflows/basic-validation.yml" "main" "09976383aa8780d306ee271bd21bb77a54fad474 # main"
 validate_uses_ref_update "mtombosch/cicd-workflows/.github/workflows/bzlmod-lock-check.yml" "main" "af347722c7ae3ed85518895c11268d96ac728f62 # main"
+validate_uses_ref_update "eclipse-score/cicd-workflows/.github/workflows/docs.yml" "f4c434fa877c0f1ee98425fc3d3ccb0b24e5c77f # main" "17318d27366522721504b60040590dc822264a38 # main"
 
 # Validate path prefix based tags
 validate_uses_ref_update "mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml" "dummy-workflow/v1.1.0" "49940a8c8dd7d60fc5a93c7e69b201c0e6af1d40 # dummy-workflow/v1.3.0"
