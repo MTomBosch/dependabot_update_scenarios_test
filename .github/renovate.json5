@@ -2,7 +2,6 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "helpers:pinGitHubActionDigestsToSemver",
     // Disable the dependency dashboard: avoids Renovate opening a tracking issue
     // in every target repository.
     // Needs to be disabled twice, see https://github.com/renovatebot/renovate/discussions/31221#discussioncomment-10551423
@@ -31,6 +30,10 @@
   prConcurrentLimit: 5,
   prHourlyLimit: 0,
 
+  // Avoid collisions with already-existing Renovate branches/PRs from other
+  // base branches (important for dry-run scenario tests).
+  additionalBranchPrefix: "{{baseBranch}}-",
+
   // Override default weekly schedule from config:recommended so Renovate
   // runs every time the workflow triggers.
   schedule: [
@@ -49,67 +52,43 @@
   // without config changes.
   //
   // The two forms handled:
-  //   Pinned-digest: uses: owner/repo/<path>@<sha> # <prefix>/<version>
-  //   Tag-as-ref:    uses: owner/repo/<path>@<prefix>/<version>
+  //   1) Pinned-digest: uses: owner/repo/<path>@<sha> # <prefix>/<version>
+  //   2) Tag-as-ref:    uses: owner/repo/<path>@<prefix>/<version>
   "customManagers": [
     {
-      // Handles pinned-digest style: @<sha> # <prefix>/<version>
-      // currentValue captures the full prefixed tag (e.g. "dummy-composite/v1.0.0").
-      // Regex versioning with a 'compatibility' group restricts comparisons to tags with
-      // the same prefix, so dummy-composite and dummy-workflow tags never cross-contaminate.
-      // newValue is the full new tag name (e.g. "dummy-composite/v1.2.0"), used directly
-      // in the replacement template — no separate tagPrefix group is needed.
+      // In-repo composite action refs (pinned-digest and tag-as-ref).
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
         "/^\\.github/actions/.+/action\\.ya?ml$/",
       ],
       "matchStrings": [
-        "uses: (?<depName>[^/\\s]+/[^/\\s]+)/(?<actionPath>[^@\\s]+)@(?<currentDigest>[0-9a-f]{40}) # (?<currentValue>[^/\\s]+/\\S+)"
+        "uses: (?<depName>[^/\\s]+/[^/\\s]+)/(?<actionPath>\\.github/actions/[^@\\s]*[^/@\\s])@(?:(?<currentDigest>[0-9a-f]{40}) # )?(?<currentValue>[^/\\s]+/\\S+)"
       ],
+      "depNameTemplate": "{{{depName}}}/{{{actionPath}}}",
+      "packageNameTemplate": "{{{depName}}}",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
       "autoReplaceStringTemplate": "uses: {{{depName}}}/{{{actionPath}}}@{{{newDigest}}} # {{{newValue}}}"
     },
     {
-      // Handles tag-as-ref style: @<prefix>/<version> (no digest pinning, tag used directly as ref).
-      // After update, converts to the pinned-digest format: @<sha> # <prefix>/<newVersion>.
-      // newDigest is resolved via the pinDigests packageRule below.
-      // Same regex versioning + compatibility-group approach as the pinned-digest manager above.
+      // In-repo reusable workflow refs (pinned-digest and tag-as-ref).
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github/workflows/.+\\.ya?ml$/",
         "/^\\.github/actions/.+/action\\.ya?ml$/",
       ],
       "matchStrings": [
-        "uses: (?<depName>[^/\\s]+/[^/\\s]+)/(?<actionPath>[^@\\s]+)@(?<currentValue>[^/\\s]+/\\S+)"
+        "uses: (?<depName>[^/\\s]+/[^/\\s]+)/(?<actionPath>\\.github/workflows/[^@\\s]*[^/@\\s])@(?:(?<currentDigest>[0-9a-f]{40}) # )?(?<currentValue>[^/\\s]+/\\S+)"
       ],
+      "depNameTemplate": "{{{depName}}}/{{{actionPath}}}",
+      "packageNameTemplate": "{{{depName}}}",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
       "autoReplaceStringTemplate": "uses: {{{depName}}}/{{{actionPath}}}@{{{newDigest}}} # {{{newValue}}}"
     }
   ],
   "packageRules": [
-    {
-      // Disable the native github-actions manager for path-prefixed tags so they are not extracted and reported as unparseable
-      "description": "Disable native github-actions parsing for path-prefixed tags",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchCurrentValue": "/^[^/\\s]+\\/\\S+$/",
-      "enabled": false
-    },
-    {
-      // For the tag-as-ref custom manager (which has no currentDigest in its matchString),
-      // pinDigests: true instructs Renovate to resolve the commit SHA for the new tag and
-      // populate newDigest, making {{{newDigest}}} available in autoReplaceStringTemplate.
-      "description": "Resolve and pin commit digests for custom.regex path-prefixed tag-as-ref references",
-      "matchManagers": [
-        "custom.regex"
-      ],
-      "groupName": "github-actions-minor-patch-update",
-      "pinDigests": true
-    },
     {
       "description": "Minor and patch updates for third-party GitHub Actions — 3-day minimum release age to allow time for retracted releases",
       "matchManagers": [
@@ -124,8 +103,8 @@
       "matchPackageNames": [
         "!/^etas.+/"
       ],
-      "minimumReleaseAge": "3 days",
-      "groupName": "github-actions-minor-patch-update",
+      // skip release age for the time being, first get the overall update procedure properly set up
+      //"minimumReleaseAge": "3 days",
     },
     {
       "description": "Minor and patch updates for ETAS GitHub Actions — no minimum release age required",
@@ -140,8 +119,89 @@
       // Regex-string form is required by matchPackageNames.
       "matchPackageNames": [
         "/^etas.+/"
+      ]
+    },
+    {
+      // Pin to commit SHA only when there is an actual semver update.
+      // This avoids standalone regular-tag pinning in pin-dependencies.
+      "description": "Pin digests for github-actions during minor/patch updates",
+      "matchManagers": [
+        "github-actions"
       ],
-      "groupName": "github-actions-minor-patch-update"
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "pinDigests": true
+    },
+    {
+      // Keep semver bump style updates and SHA pinning, but avoid standalone
+      // digest-only refresh branches that keep a broad comment such as "# v4".
+      "description": "Disable digest-only updates for GitHub actions/workflows",
+      "matchManagers": [
+        "github-actions",
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "enabled": false
+    },
+    {
+      // Do not create standalone pin-dependencies updates for prefix-tag refs.
+      // Prefix refs should be changed only when there is an actual semver update
+      // in their dedicated custom.regex branch.
+      "description": "Disable standalone pinDigest updates for custom.regex path-prefixed refs",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "enabled": false
+    },
+    {
+      // Do not pin tag-based refs in the generic pin-dependencies branch.
+      "description": "Disable pinDigest updates for github-actions by default",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "enabled": false
+    },
+    {
+      // Re-enable pinDigest only for explicit branch refs.
+      "description": "Allow pinDigest only for github-actions branch refs",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "matchCurrentValue": "/^(main|master|develop|development|dev|trunk)$/",
+      "enabled": true
+    },
+    {
+      "description": "Allow only compatible (minor/patch) GitHub Actions updates by default",
+      "matchManagers": [
+        "github-actions",
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      // Disable the native github-actions manager for path-prefixed tags so they are not extracted and reported as unparseable
+      "description": "Disable native github-actions parsing for path-prefixed tags",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchCurrentValue": "/^[^/\\s]+\\/\\S+$/",
+      "enabled": false
     },
     {
       "description": "Disable Docker image updates referenced from GitHub workflows",
@@ -160,16 +220,6 @@
       ],
       "matchDatasources": [
         "github-runners"
-      ],
-      "enabled": false
-    },
-    {
-      "description": "Allow only compatible (minor/patch) GitHub Actions updates by default",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "major"
       ],
       "enabled": false
     }
