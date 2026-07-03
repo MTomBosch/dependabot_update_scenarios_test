@@ -118,7 +118,7 @@ jobs:
         if: ${{ false }}
         # expected_behavior: update tag to dummy-composite/v1.0.1 or next minor version if it exists
         # Repo has multiple tags (for the dummy action and dummy workflow)
-        uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@dummy-composite/v1.0.0
+        uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@dummy-composite/v2.1.0
 
 
   workflow-reference-via-branch-fixture:
