@@ -63,7 +63,7 @@ jobs:
         if: ${{ false }}
         # expected_behavior: latest_commit for 6.x version
         # v6.0.0 tag points to commit 1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
   dependabot-update-scenario-tests-steps-fixture:
     runs-on: ubuntu-latest
@@ -101,7 +101,7 @@ jobs:
         # expected_behavior: Resolve commit to semver tag and then update to newest semver compatible tag
         # Expected commit sha is 34e114876b0b11c390a56381ad16ebd13914f8d5 which is version v4.3.1
         # Commit that belongs to version 4.1.0
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - name: Action reference via commit without version comment and without any tags in the repo
         if: ${{ false }}
         # expected/wished behavior: Replace current commit by latest commit on default branch
