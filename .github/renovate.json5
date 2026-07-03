@@ -25,7 +25,9 @@
   // Needs to be disabled twice, see https://github.com/renovatebot/renovate/discussions/31221#discussioncomment-10551423
   dependencyDashboard: false,
   // Limit PRs to 5 at a time to avoid overwhelming maintainers.
-  prConcurrentLimit: 5,
+  // When running renovate the first time a lot of "migration" PRs are required to come to a first clean state. For that first "migration"
+  // activity the number of PRs should be increased to 10 or 20 to speed up the process. After that, the limit should be reduced to 5.
+  prConcurrentLimit: 10,
   prHourlyLimit: 0,
   // Avoid collisions with already-existing Renovate branches/PRs from other
   // base branches (important for dry-run scenario tests).
