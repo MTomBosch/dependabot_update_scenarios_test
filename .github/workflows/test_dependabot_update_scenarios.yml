@@ -125,7 +125,7 @@ jobs:
     if: ${{ false }}
     # Repo has no tags at all
     # expected_behavior: latest_commit_on_branch
-    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@main
+    uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@09976383aa8780d306ee271bd21bb77a54fad474 # main
   workflow-reference-via-commit-fixture:
     if: ${{ false }}
     # expected_behavior: latest_commit_on_branch
