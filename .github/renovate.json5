@@ -238,6 +238,11 @@
       "enabled": false
     },
     {
+      // Pins a branch-tracking ref (e.g. @main) to the current HEAD commit of that branch as a digest.
+      // One PR per dependency is required to avoid batching unrelated refs and to make each change easy
+      // to review and revert independently. groupName: null overrides any inherited grouping from extends.
+      // branchTopic encodes dependency name, current branch value and new digest so the PR folder and
+      // branch name are self-describing without relying on post-processing.
       "description": "Create per-dependency branch commit pinning PRs.",
       "matchManagers": [
         "github-actions",
@@ -248,10 +253,18 @@
       ],
       "groupName": null,
       "branchTopic": "{{{depNameSanitized}}}__pin-{{{currentValue}}}-to__{{{newDigest}}}",
-      "commitMessageTopic": "{{{depName}}} digest",
+      // commitMessageAction/Topic/Extra are set explicitly so the derived PR title follows the
+      // "Pin <package> <currentValue> to <digest>" convention, which is more descriptive than Renovate defaults.
+      "commitMessageAction": "Pin",
+      "commitMessageTopic": "{{{depName}}} {{{currentValue}}}",
       "commitMessageExtra": "to {{{newDigest}}}"
     },
     {
+      // Updates the digest of a branch-tracking ref when the branch HEAD has moved forward.
+      // One PR per dependency is required so that each tracked branch advances independently and
+      // can be reviewed, approved or reverted without affecting other dependencies. groupName: null
+      // overrides any inherited grouping. branchTopic encodes dependency name, branch value and new
+      // digest so the PR folder and branch name are self-describing without relying on post-processing.
       "description": "Create per-dependency branch based digest update PRs.",
       "matchManagers": [
         "github-actions",
@@ -262,7 +275,10 @@
       ],
       "groupName": null,
       "branchTopic": "{{{depNameSanitized}}}__{{{currentValue}}}-branch-digest-update-to__{{{newDigest}}}",
-      "commitMessageTopic": "{{{depName}}} digest",
+      // commitMessageAction/Topic/Extra are set explicitly so the derived PR title follows the
+      // "Pin <package> <currentValue> to <digest>" convention, which is more descriptive than Renovate defaults.
+      "commitMessageAction": "Update",
+      "commitMessageTopic": "{{{depName}}} digest of branch {{{currentValue}}}",
       "commitMessageExtra": "to {{{newDigest}}}"
     },
     {
