@@ -52,7 +52,7 @@ jobs:
         # Intentionally disabled: this workflow is a static dependency fixture for dependabot updates.
         if: ${{ false }}
         # expected_behavior: latest_commit_on_branch
-        uses: actions/checkout@main
+        uses: actions/checkout@4f1f4aec02e41874fa0262ea8ff5172d7978ad1e # main
   dependabot-update-scenario-tests-steps-fixture-2:
     runs-on: ubuntu-latest
     steps:
