@@ -63,7 +63,7 @@ jobs:
         if: ${{ false }}
         # expected_behavior: latest_commit for 6.x version
         # v6.0.0 tag points to commit 1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
   dependabot-update-scenario-tests-steps-fixture:
     runs-on: ubuntu-latest
