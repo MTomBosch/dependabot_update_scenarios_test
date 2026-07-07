@@ -131,7 +131,7 @@ jobs:
     # expected_behavior: latest_commit_on_branch
     # Repo has some tags v0.0.0 and v0.0.1 on non-latest commits, but commit reference is on main branch and is newer than the tags
     # Commit is from May 12 2026
-    uses: mtombosch/cicd-workflows/.github/workflows/copyright.yml@a2885534f75cf360ecb1b3c589778846bcd4e170
+    uses: mtombosch/cicd-workflows/.github/workflows/copyright.yml@17318d27366522721504b60040590dc822264a38
   workflow-reference-via-branch-fixture-2:
     if: ${{ false }}
     # expected_behavior: latest_commit_on_branch
