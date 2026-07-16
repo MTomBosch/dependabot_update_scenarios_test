@@ -77,6 +77,8 @@ uses: mtombosch/cicd-workflows/.github/workflows/bzlmod-lock-check.yml@main
 - PR Title: `Update eclipse-score/cicd-workflows digest of branch main to 173...`
 - Commit Message: `Update eclipse-score/cicd-workflows digest of branch main to 173...`
 
+> **Note – path-prefixed refs with a direct branch reference** (e.g., `owner/repo/.github/actions/my-action@main`, cases 16 and 22 in the use-case list): The `custom.regex` `matchStrings` pattern requires `currentValue` to contain `/`; a plain branch name such as `main` does not satisfy that, so `custom.regex` skips the ref. The `github-actions` manager then processes it with the same `pinDigest`/`digest` branch-tracking logic described in this category. The rule `"Disable native github-actions handling of path-prefixed tags"` does not suppress these because its `matchCurrentValue` filter (`/^[^/\s]+\/\S+$/`) only matches values that already contain `/`.
+
 ---
 
 ### Category 3: Standard Actions/Workflows via Commit SHA with Version Comment
@@ -98,7 +100,7 @@ uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@95d96567
 - `matchCurrentValue: /^v?\d+(?:\.\d+){0,2}$/` matches the version comment
 
 **Update Behavior:**
-1. Renovate parses the version comment (e.g., `v4.2.0`, `4.2.0`, `v4`, `main`) as the semantic version.
+1. Renovate parses the version comment (e.g., `v4.2.0`, `4.2.0`, `v4`) as the semantic version.
 2. Ignores the commit SHA; uses the version comment for lookup.
 3. Finds the latest semver-compatible tag and resolves it to its commit SHA.
 4. Updates the reference SHA to point to the newest compatible version commit.
@@ -214,6 +216,95 @@ uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusabl
 
 ---
 
+### Category 7: Actions/Workflows via Commit SHA with Branch Name Comment
+
+Covers use cases where the ref is a 40-character commit SHA and the inline comment holds a plain branch name (not a SemVer version). Applies to:
+- Standard GitHub Action with branch comment (use case 1)
+- Standard reusable workflow with branch comment (use case 7)
+- Path-prefixed action with branch comment (use case 13)
+- Path-prefixed reusable workflow with branch comment (use case 19)
+
+For path-prefixed refs the `custom.regex` `matchStrings` pattern requires `currentValue` to match `[^/\s]+/\S+` (must contain `/`). A bare branch name like `main` has no `/`, so `custom.regex` does not capture it and the `github-actions` manager processes it instead.
+
+**Example:**
+```yaml
+# Standard action:
+uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # main
+# Standard reusable workflow:
+uses: actions/reusable-workflows/.github/workflows/basic-validation.yml@95d9656793415e47f574f7967f3850ea3bf5a7ed # main
+# Path-prefixed action (custom.regex not applicable; github-actions handles it):
+uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@150be11f8e18450c38116b01268b2b7119b87931 # main
+# Path-prefixed reusable workflow (same fallthrough):
+uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@150be11f8e18450c38116b01268b2b7119b87931 # main
+```
+
+**Renovate Manager:** `github-actions`
+
+**Configuration Applied:**
+- Rules:
+  - `"Allow github-actions digest updates for non-whitespace refs"` (enabled; `main` is non-whitespace)
+  - `"Disable github-actions digest updates when currentValue is a commit SHA"` (not triggered; `main` is not a 40-char hex SHA)
+  - `"Disable github-actions digest updates when currentValue is semver-like"` (not triggered; `main` is not semver)
+  - `"Create per-dependency branch based digest update PRs"` (one PR per dependency; `groupName: null`)
+
+**Relationship to Category 2:**
+- Category 2 (`@branch`, no SHA) is the unpinned form; it receives a `pinDigest` update that pins the ref to the current branch HEAD, producing the `@sha # branch` form.
+- Category 7 (`@sha # branch`) is already in pinned form; it only receives `digest` refresh updates when the branch HEAD advances.
+- Both forms converge to the same stable state: `@<sha> # <branch>`.
+
+**Update Behavior:**
+1. Renovate extracts `currentDigest` from the 40-char SHA and `currentValue` from the branch name in the comment.
+2. The branch name cannot be parsed as SemVer; Renovate resolves the branch to its current HEAD commit.
+3. If the branch HEAD differs from `currentDigest`, a `digest` PR is created with the updated SHA.
+4. Result: `@<oldsha> # main` → `@<newsha> # main`
+
+**PR Details:**
+- Branch: `renovate/baseBranch-{depNameSanitized}__{currentValue}-branch-digest-update-to__{newDigest}`
+- PR Title: `Update {depName} digest of branch main to {newDigest}`
+- Commit Message: `Update {depName} digest of branch main to {newDigest}`
+
+---
+
+### Category 8: Path-Prefixed Self-References via Major-Only Version Tag or Comment (No Update)
+
+Covers path-prefixed action and reusable workflow references where the version uses only a major number with its path prefix (e.g., `dummy-composite/v1`), with no minor or patch component. Applies to:
+- Path-prefixed action: direct major-only tag (use case 18)
+- Path-prefixed action: SHA with major-only path-prefixed comment (use case 15)
+- Path-prefixed reusable workflow: direct major-only tag (use case 24)
+- Path-prefixed reusable workflow: SHA with major-only path-prefixed comment (use case 21)
+
+**Example:**
+```yaml
+# Path-prefixed action, direct major-only tag:
+uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@dummy-composite/v1
+# Path-prefixed action, SHA with major-only path-prefixed comment:
+uses: mtombosch/dependabot_update_scenarios_test/.github/actions/dummy-composite@150be11f8e18450c38116b01268b2b7119b87931 # dummy-composite/v1
+# Path-prefixed reusable workflow, direct major-only tag:
+uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@dummy-workflow/v1
+# Path-prefixed reusable workflow, SHA with major-only path-prefixed comment:
+uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusable_workflow.yml@150be11f8e18450c38116b01268b2b7119b87931 # dummy-workflow/v1
+```
+
+**Renovate Manager:** `custom.regex` (`currentValue` contains `/`, e.g. `dummy-composite/v1`, so the `matchStrings` pattern captures it)
+
+**Configuration Applied:**
+- `custom.regex` `matchStrings` captures the ref; `currentValue` is set to the major-only prefixed tag (e.g., `dummy-composite/v1`).
+- `versioningTemplate: "regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$"` is applied.
+- `dummy-composite/v1` does not satisfy this pattern: it provides only `major` but the template requires all three of `major.minor.patch`.
+
+**Update Behavior:**
+1. `custom.regex` extracts the ref but version parsing fails because the `versioningTemplate` requires full three-part SemVer.
+2. Renovate cannot determine a valid starting version; no compatible update is computed.
+3. No PR is generated; the reference is left unchanged.
+
+**PR Details:**
+- No PR generated.
+
+**Note:** To support major-only path-prefixed version tags the `versioningTemplate` in `customManagers` would need to be extended to accept an optional minor/patch group, e.g.:
+`"regex:^(?<compatibility>[^/]+)/v?(?<major>\\d+)(?:\\.(?<minor>\\d+)\\.(?<patch>\\d+))?$"`
+
+---
+
 ## Configuration Summary
 
 ### Renovate Managers
@@ -230,7 +321,9 @@ uses: mtombosch/dependabot_update_scenarios_test/.github/workflows/dummy_reusabl
 | Minor/Patch Updates | `minor`, `patch` | Allowed; updates to latest semver-compatible version |
 | Major Updates | `major` | Disabled globally; can be enabled per-dependency |
 | Branch Digest Pinning | `pinDigest`, `digest` | One PR per dependency; pins branch HEAD to commit SHA |
+| SHA + Branch Comment | `digest` | Digest-only refresh (already pinned); branch name preserved in comment |
 | Path-Prefixed Pinning | `pinDigest` | One PR per path-prefixed dependency; avoids grouping |
+| Path-Prefixed Major-Only | none | No update; `versioningTemplate` requires `major.minor.patch` |
 | Disabled Refs | commit SHA without comment | No update (skip); cannot determine semantic version |
 
 ### Commit Message Format
