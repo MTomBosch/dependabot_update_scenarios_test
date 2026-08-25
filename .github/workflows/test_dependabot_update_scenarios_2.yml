@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build-docs:
     # main as of 2026-04-24
-    uses: eclipse-score/cicd-workflows/.github/workflows/docs.yml@f4c434fa877c0f1ee98425fc3d3ccb0b24e5c77f # main
+    uses: eclipse-score/cicd-workflows/.github/workflows/docs.yml@08ac250beeec84513dc2da3bf3b4edab3459b214 # main
     with:
       # For accessing dependencies in private repositories (via bazel_dep)
       gh_app_client_id: ${{ vars.ETAS_ENG_SCORE_BOT_APP_ID }}
